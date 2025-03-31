@@ -9,6 +9,8 @@ require (
 	github.com/disgoorg/json v1.2.0
 	github.com/disgoorg/snowflake/v2 v2.0.3
 	github.com/muesli/termenv v0.16.0
+	go.gopad.dev/fuzzysearch v0.0.0-20240526153819-c12185e04fe2
+	golang.org/x/image v0.25.0
 )
 
 require (
@@ -28,6 +30,6 @@ require (
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
-	golang.org/x/image v0.25.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
 )

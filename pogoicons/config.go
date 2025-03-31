@@ -28,26 +28,30 @@ func LoadConfig(cfgPath string) (Config, error) {
 
 func defaultConfig() Config {
 	return Config{
+		PokeAPIURL: "https://pokeapi.co/api/v2",
+		Bot: BotConfig{
+			Token:        "",
+			GuildIDs:     nil,
+			SyncCommands: true,
+		},
 		Log: LogConfig{
 			Level:     slog.LevelInfo,
 			Format:    LogFormatText,
 			AddSource: false,
 			NoColor:   false,
 		},
-		Bot: BotConfig{
-			Token:    "",
-			GuildIDs: nil,
-		},
 	}
 }
 
 type Config struct {
-	Bot BotConfig `yaml:"bot"`
-	Log LogConfig `toml:"log"`
+	PokeAPIURL string    `toml:"pokeapi_url"`
+	Bot        BotConfig `toml:"bot"`
+	Log        LogConfig `toml:"log"`
 }
 
 func (c Config) String() string {
-	return fmt.Sprintf("Bot: %s\nLog: %s",
+	return fmt.Sprintf("PokeAPIURL: %s\nBot: %s\nLog: %s",
+		c.PokeAPIURL,
 		c.Bot,
 		c.Log,
 	)
@@ -78,9 +82,9 @@ func (c LogConfig) String() string {
 }
 
 type BotConfig struct {
-	Token        string         `yaml:"token"`
-	GuildIDs     []snowflake.ID `yaml:"guild_ids"`
-	SyncCommands bool           `yaml:"sync_commands"`
+	Token        string         `toml:"token"`
+	GuildIDs     []snowflake.ID `toml:"guild_ids"`
+	SyncCommands bool           `toml:"sync_commands"`
 }
 
 func (c BotConfig) String() string {
@@ -89,4 +93,23 @@ func (c BotConfig) String() string {
 		c.GuildIDs,
 		c.SyncCommands,
 	)
+}
+
+type AssetConfig struct {
+	Events    []EventConfig    `toml:"events"`
+	Cosmetics []CosmeticConfig `toml:"cosmetics"`
+}
+
+type EventConfig struct {
+	Name                string  `toml:"name"`
+	Background          string  `toml:"background"`
+	BackgroundIcon      string  `toml:"background_icon"`
+	BackgroundIconScale float64 `toml:"background_icon_scale"`
+	PokemonScale        float64 `toml:"pokemon_scale"`
+}
+
+type CosmeticConfig struct {
+	Name  string  `toml:"name"`
+	Image string  `toml:"image"`
+	Scale float64 `toml:"scale"`
 }

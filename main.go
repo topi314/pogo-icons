@@ -9,6 +9,7 @@ import (
 	"runtime/debug"
 	"syscall"
 
+	"github.com/BurntSushi/toml"
 	"github.com/charmbracelet/log"
 	"github.com/disgoorg/disgo"
 	"github.com/disgoorg/disgo/bot"
@@ -17,8 +18,13 @@ import (
 	"github.com/topi314/pogo-icons/pogoicons"
 )
 
-//go:embed assets
-var assets embed.FS
+var (
+	//go:embed assets
+	assets embed.FS
+
+	//go:embed assets/config.toml
+	assetConfig []byte
+)
 
 func main() {
 	cfgPath := flag.String("config", "config.toml", "path to config file")
@@ -48,7 +54,13 @@ func main() {
 		return
 	}
 
-	b := pogoicons.New(client, cfg, version, goVersion, assets)
+	var assetCfg pogoicons.AssetConfig
+	if err = toml.Unmarshal(assetConfig, &assetCfg); err != nil {
+		slog.Error("Error while unmarshalling events", slog.Any("err", err))
+		return
+	}
+
+	b := pogoicons.New(client, cfg, version, goVersion, assets, assetCfg)
 	go b.Start()
 
 	slog.Info("Bot started")

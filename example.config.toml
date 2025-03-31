@@ -1,3 +1,5 @@
+pokeapi_url = "https://pokeapi.co/api/v2"
+
 [bot]
 token = ""
 guild_ids = []

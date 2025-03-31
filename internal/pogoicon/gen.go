@@ -11,15 +11,23 @@ import (
 	"golang.org/x/image/draw"
 )
 
-func Generate(pokemon io.Reader, pokemonScale float64, background io.Reader, cosmetic io.Reader, cosmeticScale float64) (io.Reader, error) {
-	pokemonImage, _, err := image.Decode(pokemon)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode pokemon image: %w", err)
-	}
-
+func Generate(background io.Reader, backgroundIcon io.Reader, backgroundIconScale float64, pokemon io.Reader, pokemonScale float64, cosmetic io.Reader, cosmeticScale float64) (io.Reader, error) {
 	backgroundImage, _, err := image.Decode(background)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode background image: %w", err)
+	}
+
+	var backgroundIconImage image.Image
+	if backgroundIcon != nil {
+		backgroundIconImage, _, err = image.Decode(backgroundIcon)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode background icon image: %w", err)
+		}
+	}
+
+	pokemonImage, _, err := image.Decode(pokemon)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode pokemon image: %w", err)
 	}
 
 	var cosmeticImage image.Image
@@ -32,6 +40,18 @@ func Generate(pokemon io.Reader, pokemonScale float64, background io.Reader, cos
 
 	newImage := image.NewRGBA(backgroundImage.Bounds())
 	draw.Draw(newImage, newImage.Bounds(), backgroundImage, image.Point{}, draw.Src)
+
+	if backgroundIconImage != nil {
+		scaledBackgroundIconWidth := int(float64(backgroundIconImage.Bounds().Dx()) * backgroundIconScale)
+		scaledBackgroundIconHeight := int(float64(backgroundIconImage.Bounds().Dy()) * backgroundIconScale)
+
+		scaledBackgroundIcon := image.NewRGBA(image.Rect(0, 0, scaledBackgroundIconWidth, scaledBackgroundIconHeight))
+		draw.BiLinear.Scale(scaledBackgroundIcon, scaledBackgroundIcon.Bounds(), backgroundIconImage, backgroundIconImage.Bounds(), draw.Over, nil)
+
+		backgroundIconXOffset := (backgroundImage.Bounds().Dx() - scaledBackgroundIconWidth) / 2
+		backgroundIconYOffset := (backgroundImage.Bounds().Dy() - scaledBackgroundIconHeight) / 2
+		draw.Draw(newImage, image.Rect(backgroundIconXOffset, backgroundIconYOffset, backgroundIconXOffset+scaledBackgroundIconWidth, backgroundIconYOffset+scaledBackgroundIconHeight), scaledBackgroundIcon, image.Point{}, draw.Over)
+	}
 
 	scaledHeight := int(float64(backgroundImage.Bounds().Dy()) * pokemonScale)
 	scaledWidth := int(float64(pokemonImage.Bounds().Dx()) * pokemonScale)

@@ -1,5 +1,10 @@
 package pokeapi
 
+import (
+	"strconv"
+	"strings"
+)
+
 type Page[T any] struct {
 	Count    int    `json:"count"`
 	Next     string `json:"next"`
@@ -10,6 +15,17 @@ type Page[T any] struct {
 type PokemonSpecie struct {
 	Name string `json:"name"`
 	URL  string `json:"url"`
+}
+
+func (s PokemonSpecie) FilterValue() string {
+	return s.Name
+}
+
+func (s PokemonSpecie) ID() int {
+	parts := strings.Split(s.URL, "/")
+
+	id, _ := strconv.Atoi(parts[len(parts)-2])
+	return id
 }
 
 type Pokemon struct {

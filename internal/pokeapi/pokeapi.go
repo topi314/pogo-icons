@@ -48,6 +48,8 @@ func (c *Client) GetPokemonSpecies(ctx context.Context) ([]PokemonSpecie, error)
 		url = p.Next
 	}
 
+	c.pokemonSpecies = allPokemonSpecies
+
 	return allPokemonSpecies, nil
 }
 
