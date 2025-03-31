@@ -1,0 +1,12 @@
+ffmpeg = "ffmpeg"
+
+[bot]
+token = ""
+guild_ids = []
+sync_commands = true
+
+[log]
+level = "info"
+format = "text"
+add_source = false
+no_color = false

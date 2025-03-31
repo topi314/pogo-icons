@@ -1,4 +1,4 @@
-package server
+package pogoicons
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
+	"github.com/disgoorg/snowflake/v2"
 )
 
 func LoadConfig(cfgPath string) (Config, error) {
@@ -33,23 +34,23 @@ func defaultConfig() Config {
 			AddSource: false,
 			NoColor:   false,
 		},
-		ListenAddr: "0.0.0.0",
-		AssetsDir:  "assets",
+		Bot: BotConfig{
+			Token:    "",
+			GuildIDs: nil,
+		},
 	}
 }
 
 type Config struct {
-	Dev        bool      `toml:"dev"`
-	ListenAddr string    `toml:"listen_addr"`
-	AssetsDir  string    `toml:"assets_dir"`
-	Log        LogConfig `toml:"log"`
+	FFMPEG string    `toml:"ffmpeg"`
+	Bot    BotConfig `yaml:"bot"`
+	Log    LogConfig `toml:"log"`
 }
 
 func (c Config) String() string {
-	return fmt.Sprintf("Dev: %t\nListenAddr: %s\nAssetsDir: %s\nLog: %s",
-		c.Dev,
-		c.ListenAddr,
-		c.AssetsDir,
+	return fmt.Sprintf("FFMPEG: %s\nBot: %s\nLog: %s",
+		c.FFMPEG,
+		c.Bot,
 		c.Log,
 	)
 }
@@ -75,5 +76,19 @@ func (c LogConfig) String() string {
 		c.Format,
 		c.AddSource,
 		c.NoColor,
+	)
+}
+
+type BotConfig struct {
+	Token        string         `yaml:"token"`
+	GuildIDs     []snowflake.ID `yaml:"guild_ids"`
+	SyncCommands bool           `yaml:"sync_commands"`
+}
+
+func (c BotConfig) String() string {
+	return fmt.Sprintf("\n Token: %s\n GuildIDs: %s\n SyncCommands: %t",
+		c.Token,
+		c.GuildIDs,
+		c.SyncCommands,
 	)
 }

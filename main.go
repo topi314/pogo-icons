@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	"flag"
 	"log/slog"
 	"os"
@@ -9,16 +10,21 @@ import (
 	"syscall"
 
 	"github.com/charmbracelet/log"
+	"github.com/disgoorg/disgo"
+	"github.com/disgoorg/disgo/bot"
 	"github.com/muesli/termenv"
 
-	"github.com/topi314/pogo-icons/server"
+	"github.com/topi314/pogo-icons/pogoicons"
 )
+
+//go:embed assets
+var assets embed.FS
 
 func main() {
 	cfgPath := flag.String("config", "config.toml", "path to config file")
 	flag.Parse()
 
-	cfg, err := server.LoadConfig(*cfgPath)
+	cfg, err := pogoicons.LoadConfig(*cfgPath)
 	if err != nil {
 		slog.Error("Error while loading config", slog.Any("err", err))
 		return
@@ -33,26 +39,32 @@ func main() {
 		goVersion = info.GoVersion
 	}
 
-	slog.Info("Starting server...", slog.String("version", version), slog.String("go_version", goVersion))
+	slog.Info("Starting bpt...", slog.String("version", version), slog.String("go_version", goVersion))
 	slog.Info("Config loaded", slog.Any("config", cfg))
 
-	s := server.New(cfg, version, goVersion)
-	go s.Start()
+	client, err := disgo.New(cfg.Bot.Token, bot.WithDefaultGateway())
+	if err != nil {
+		slog.Error("Error while creating bot client", slog.Any("err", err))
+		return
+	}
 
-	slog.Info("Server started", slog.Any("addr", cfg.ListenAddr))
+	b := pogoicons.New(client, cfg, version, goVersion, assets)
+	go b.Start()
+
+	slog.Info("Bot started")
 	si := make(chan os.Signal, 1)
 	signal.Notify(si, syscall.SIGINT, syscall.SIGTERM)
 	<-si
 }
 
-func setupLogger(cfg server.LogConfig) {
+func setupLogger(cfg pogoicons.LogConfig) {
 	var formatter log.Formatter
 	switch cfg.Format {
-	case server.LogFormatJSON:
+	case pogoicons.LogFormatJSON:
 		formatter = log.JSONFormatter
-	case server.LogFormatText:
+	case pogoicons.LogFormatText:
 		formatter = log.TextFormatter
-	case server.LogFormatLogFMT:
+	case pogoicons.LogFormatLogFMT:
 		formatter = log.LogfmtFormatter
 	default:
 		slog.Error("Unknown log format", slog.String("format", string(cfg.Format)))
@@ -65,7 +77,7 @@ func setupLogger(cfg server.LogConfig) {
 		ReportCaller:    cfg.AddSource,
 		Formatter:       formatter,
 	})
-	if cfg.Format == server.LogFormatText && !cfg.NoColor {
+	if cfg.Format == pogoicons.LogFormatText && !cfg.NoColor {
 		handler.SetColorProfile(termenv.TrueColor)
 	}
 

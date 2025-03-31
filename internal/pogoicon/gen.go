@@ -1,4 +1,4 @@
-package pokeicon
+package pogoicon
 
 import (
 	"bytes"
@@ -11,6 +11,7 @@ import (
 )
 
 type Options struct {
+	FFMPEG      string
 	ScaleWidth  int
 	ScaleHeight int
 }
@@ -61,7 +62,7 @@ func Generate(ctx context.Context, pokemon io.Reader, background io.Reader, opti
 		}
 	}()
 
-	cmd := exec.CommandContext(ctx, "ffmpeg",
+	cmd := exec.CommandContext(ctx, options.FFMPEG,
 		"-i", "pipe:0",
 		"-i", "pipe:3",
 		"-filter_complex", fmt.Sprintf(

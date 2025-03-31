@@ -10,7 +10,7 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/topi314/pogo-icons/internal/poke-icon"
+	"github.com/topi314/pogo-icons/internal/pogoicon"
 	"github.com/topi314/pogo-icons/internal/pokeapi"
 )
 
@@ -23,6 +23,7 @@ func main() {
 	pokemon := flag.String("pokemon", "", "Pokemon name or ID")
 	background := flag.String("background", "", "Background image name")
 	endpoint := flag.String("endpoint", "https://pokeapi.co/api/v2", "PokeAPI endpoint")
+	ffmpeg := flag.String("ffmpeg", "ffmpeg", "FFmpeg executable")
 	output := flag.String("output", "output.png", "Output file name")
 	flag.Parse()
 
@@ -68,7 +69,8 @@ func main() {
 	}
 	defer backgroundImage.Close()
 
-	r, err := pokeicon.Generate(ctx, pokemonImage.Body, backgroundImage, pokeicon.Options{
+	r, err := pogoicon.Generate(ctx, pokemonImage.Body, backgroundImage, pogoicon.Options{
+		FFMPEG:      *ffmpeg,
 		ScaleWidth:  ScaleWidth,
 		ScaleHeight: ScaleHeight,
 	})
