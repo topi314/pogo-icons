@@ -20,8 +20,6 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 
 FROM alpine
 
-RUN apk add --no-cache ffmpeg
-
 COPY --from=build /build/pogo-icons /bin/pogo-icons
 
 ENTRYPOINT ["/bin/pogo-icons"]

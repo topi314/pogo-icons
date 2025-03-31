@@ -2,93 +2,62 @@ package pogoicon
 
 import (
 	"bytes"
-	"context"
 	"fmt"
+	"image"
+	_ "image/jpeg"
+	"image/png"
 	"io"
-	"log/slog"
-	"os"
-	"os/exec"
+
+	"golang.org/x/image/draw"
 )
 
-type Options struct {
-	FFMPEG      string
-	ScaleWidth  int
-	ScaleHeight int
-}
-
-func newError(err error, log []byte) *Error {
-	return &Error{
-		Err: err,
-		Log: log,
-	}
-}
-
-type Error struct {
-	Err error
-	Log []byte
-}
-
-func (e *Error) Error() string {
-	return e.Err.Error()
-}
-
-func (e *Error) LogString() string {
-	return string(e.Log)
-}
-
-func (e *Error) Unwrap() error {
-	return e.Err
-}
-
-func Generate(ctx context.Context, pokemon io.Reader, background io.Reader, options Options) (io.Reader, error) {
-	backgroundPipeReader, backgroundPipeWriter, err := os.Pipe()
+func Generate(pokemon io.Reader, pokemonScale float64, background io.Reader, cosmetic io.Reader, cosmeticScale float64) (io.Reader, error) {
+	pokemonImage, _, err := image.Decode(pokemon)
 	if err != nil {
-		return nil, fmt.Errorf("error creating background pipe: %w", err)
+		return nil, fmt.Errorf("failed to decode pokemon image: %w", err)
 	}
-	pokemonPipeReader, pokemonPipeWriter, err := os.Pipe()
+
+	backgroundImage, _, err := image.Decode(background)
 	if err != nil {
-		return nil, fmt.Errorf("error creating pokemon pipe: %w", err)
-	}
-	go func() {
-		defer backgroundPipeWriter.Close()
-		if _, err := io.Copy(backgroundPipeWriter, background); err != nil {
-			slog.ErrorContext(ctx, "error copying to background pipe", slog.Any("err", err))
-		}
-	}()
-	go func() {
-		defer pokemonPipeWriter.Close()
-		if _, err := io.Copy(pokemonPipeWriter, pokemon); err != nil {
-			slog.ErrorContext(ctx, "error copying to pokemon pipe", slog.Any("err", err))
-		}
-	}()
-
-	cmd := exec.CommandContext(ctx, options.FFMPEG,
-		"-i", "pipe:0",
-		"-i", "pipe:3",
-		"-filter_complex", fmt.Sprintf(
-			"[1:v]scale=%d:%d[overlay];[0:v][overlay]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2",
-			options.ScaleWidth, options.ScaleHeight,
-		),
-		"-c:v", "png", // PNG encoding
-		"-pix_fmt", "rgba", // Ensure proper PNG format with transparency
-		"-f", "image2pipe", // Force output as image2pipe format
-		"pipe:1", // Output to stdout
-	)
-
-	cmd.Stdin = backgroundPipeReader
-	cmd.ExtraFiles = []*os.File{pokemonPipeReader}
-
-	var buf bytes.Buffer
-	cmd.Stdout = &buf
-	var stderrBuf bytes.Buffer
-	cmd.Stderr = &stderrBuf
-
-	// Run FFmpeg
-	if err = cmd.Run(); err != nil {
-		return nil, newError(err, stderrBuf.Bytes())
+		return nil, fmt.Errorf("failed to decode background image: %w", err)
 	}
 
-	_, _ = io.Copy(os.Stdout, &stderrBuf)
+	var cosmeticImage image.Image
+	if cosmetic != nil {
+		cosmeticImage, _, err = image.Decode(cosmetic)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode cosmetic image: %w", err)
+		}
+	}
 
-	return &buf, nil
+	newImage := image.NewRGBA(backgroundImage.Bounds())
+	draw.Draw(newImage, newImage.Bounds(), backgroundImage, image.Point{}, draw.Src)
+
+	scaledHeight := int(float64(backgroundImage.Bounds().Dy()) * pokemonScale)
+	scaledWidth := int(float64(pokemonImage.Bounds().Dx()) * pokemonScale)
+
+	scaledPokemon := image.NewRGBA(image.Rect(0, 0, scaledWidth, scaledHeight))
+	draw.BiLinear.Scale(scaledPokemon, scaledPokemon.Bounds(), pokemonImage, pokemonImage.Bounds(), draw.Over, nil)
+
+	pokemonXOffset := (backgroundImage.Bounds().Dx() - scaledWidth) / 2
+	pokemonYOffset := (backgroundImage.Bounds().Dy() - scaledHeight) / 2
+	draw.Draw(newImage, image.Rect(pokemonXOffset, pokemonYOffset, pokemonXOffset+scaledWidth, pokemonYOffset+scaledHeight), scaledPokemon, image.Point{}, draw.Over)
+
+	if cosmeticImage != nil {
+		cosmeticWidth := int(float64(cosmeticImage.Bounds().Dx()) * cosmeticScale)
+		cosmeticHeight := int(float64(cosmeticImage.Bounds().Dy()) * cosmeticScale)
+
+		scaledCosmetic := image.NewRGBA(image.Rect(0, 0, cosmeticWidth, cosmeticHeight))
+		draw.BiLinear.Scale(scaledCosmetic, scaledCosmetic.Bounds(), cosmeticImage, cosmeticImage.Bounds(), draw.Over, nil)
+
+		cosmeticXOffset := pokemonXOffset
+		cosmeticYOffset := pokemonYOffset
+		draw.Draw(newImage, image.Rect(cosmeticXOffset, cosmeticYOffset, cosmeticXOffset+cosmeticWidth, cosmeticYOffset+cosmeticHeight), scaledCosmetic, image.Point{}, draw.Over)
+	}
+
+	buf := new(bytes.Buffer)
+	if err = png.Encode(buf, newImage); err != nil {
+		return nil, fmt.Errorf("failed to encode image: %w", err)
+	}
+	return bytes.NewReader(buf.Bytes()), nil
 }

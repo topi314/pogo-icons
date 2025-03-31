@@ -42,14 +42,12 @@ func defaultConfig() Config {
 }
 
 type Config struct {
-	FFMPEG string    `toml:"ffmpeg"`
-	Bot    BotConfig `yaml:"bot"`
-	Log    LogConfig `toml:"log"`
+	Bot BotConfig `yaml:"bot"`
+	Log LogConfig `toml:"log"`
 }
 
 func (c Config) String() string {
-	return fmt.Sprintf("FFMPEG: %s\nBot: %s\nLog: %s",
-		c.FFMPEG,
+	return fmt.Sprintf("Bot: %s\nLog: %s",
 		c.Bot,
 		c.Log,
 	)

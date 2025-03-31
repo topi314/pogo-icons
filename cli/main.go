@@ -14,17 +14,14 @@ import (
 	"github.com/topi314/pogo-icons/internal/pokeapi"
 )
 
-const (
-	ScaleWidth  = -1
-	ScaleHeight = 450
-)
-
 func main() {
+	background := flag.String("background", "generic", "Background image name (default: generic)")
 	pokemon := flag.String("pokemon", "", "Pokemon name or ID")
-	background := flag.String("background", "", "Background image name")
-	endpoint := flag.String("endpoint", "https://pokeapi.co/api/v2", "PokeAPI endpoint")
-	ffmpeg := flag.String("ffmpeg", "ffmpeg", "FFmpeg executable")
-	output := flag.String("output", "output.png", "Output file name")
+	pokemonScale := flag.Float64("scale", 1, "Pokemon scale (default: 1)")
+	cosmetic := flag.String("cosmetic", "", "Cosmetic image name")
+	cosmeticScale := flag.Float64("cosmetic-scale", 0.15, "Cosmetic scale (default: 0.2)")
+	endpoint := flag.String("endpoint", "https://pokeapi.co/api/v2", "PokeAPI endpoint URL (default: https://pokeapi.co/api/v2)")
+	output := flag.String("output", "output.png", "Output file name (default: output.png)")
 	flag.Parse()
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
@@ -32,11 +29,6 @@ func main() {
 
 	if *pokemon == "" {
 		slog.ErrorContext(ctx, "Pokemon name or ID is required")
-		return
-	}
-
-	if *background == "" {
-		slog.ErrorContext(ctx, "Background image name is required")
 		return
 	}
 
@@ -69,11 +61,21 @@ func main() {
 	}
 	defer backgroundImage.Close()
 
-	r, err := pogoicon.Generate(ctx, pokemonImage.Body, backgroundImage, pogoicon.Options{
-		FFMPEG:      *ffmpeg,
-		ScaleWidth:  ScaleWidth,
-		ScaleHeight: ScaleHeight,
-	})
+	var cosmeticImage *os.File
+	if *cosmetic != "" {
+		cosmeticImage, err = os.Open(fmt.Sprintf("assets/cosmetics/%s.png", *cosmetic))
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				slog.ErrorContext(ctx, "Cosmetic image not found", slog.String("cosmetic", *cosmetic))
+				return
+			}
+			slog.ErrorContext(ctx, "Error while opening cosmetic", slog.Any("err", err))
+			return
+		}
+		defer cosmeticImage.Close()
+	}
+
+	r, err := pogoicon.Generate(pokemonImage.Body, *pokemonScale, backgroundImage, cosmeticImage, *cosmeticScale)
 	if err != nil {
 		slog.ErrorContext(ctx, "Error while generating image", slog.Any("err", err))
 		return
