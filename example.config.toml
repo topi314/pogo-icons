@@ -1,4 +1,4 @@
-pokeapi_url = "https://pokeapi.co/api/v2"
+pokeapi_url = "https://github.com/PokeAPI/api-data"
 
 [bot]
 token = ""

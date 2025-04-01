@@ -15,6 +15,7 @@ import (
 	"github.com/disgoorg/disgo/bot"
 	"github.com/muesli/termenv"
 
+	"github.com/topi314/pogo-icons/internal/pokeapi"
 	"github.com/topi314/pogo-icons/pogoicons"
 )
 
@@ -60,7 +61,13 @@ func main() {
 		return
 	}
 
-	b := pogoicons.New(client, cfg, version, goVersion, assets, assetCfg)
+	pokeClient, err := pokeapi.NewGit(cfg.Repository)
+	if err != nil {
+		slog.Error("Error while creating pokeapi client", slog.Any("err", err))
+		return
+	}
+
+	b := pogoicons.New(client, pokeClient, cfg, version, goVersion, assets, assetCfg)
 	go b.Start()
 
 	slog.Info("Bot started")

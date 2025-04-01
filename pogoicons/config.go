@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 	"github.com/disgoorg/snowflake/v2"
@@ -28,7 +29,7 @@ func LoadConfig(cfgPath string) (Config, error) {
 
 func defaultConfig() Config {
 	return Config{
-		PokeAPIURL: "https://pokeapi.co/api/v2",
+		Repository: "https://github.com/PokeAPI/api-data",
 		Bot: BotConfig{
 			Token:        "",
 			GuildIDs:     nil,
@@ -44,14 +45,14 @@ func defaultConfig() Config {
 }
 
 type Config struct {
-	PokeAPIURL string    `toml:"pokeapi_url"`
+	Repository string    `toml:"repository"`
 	Bot        BotConfig `toml:"bot"`
 	Log        LogConfig `toml:"log"`
 }
 
 func (c Config) String() string {
-	return fmt.Sprintf("PokeAPIURL: %s\nBot: %s\nLog: %s",
-		c.PokeAPIURL,
+	return fmt.Sprintf("Repository: %s\nBot: %s\nLog: %s",
+		c.Repository,
 		c.Bot,
 		c.Log,
 	)
@@ -89,7 +90,7 @@ type BotConfig struct {
 
 func (c BotConfig) String() string {
 	return fmt.Sprintf("\n Token: %s\n GuildIDs: %s\n SyncCommands: %t",
-		c.Token,
+		strings.Repeat("*", len(c.Token)),
 		c.GuildIDs,
 		c.SyncCommands,
 	)

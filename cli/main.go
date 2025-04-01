@@ -22,7 +22,7 @@ func main() {
 	pokemonScale := flag.Float64("scale", 1, "Pokemon scale (default: 1.0)")
 	cosmetic := flag.String("cosmetic", "", "Cosmetic image name")
 	cosmeticScale := flag.Float64("cosmetic-scale", 0.15, "Cosmetic scale (default: 0.2)")
-	endpoint := flag.String("endpoint", "https://pokeapi.co/api/v2", "PokeAPI endpoint URL (default: https://pokeapi.co/api/v2)")
+	repository := flag.String("repository", "https://github.com/PokeAPI/api-data2", "PokeAPI repository (default: https://github.com/PokeAPI/api-data)")
 	output := flag.String("output", "output.png", "Output file name (default: output.png)")
 	flag.Parse()
 
@@ -34,8 +34,12 @@ func main() {
 		return
 	}
 
-	pokeClient := pokeapi.New(*endpoint)
-	p, err := pokeClient.GetPokemon(ctx, *pokemon)
+	pokeClient, err := pokeapi.NewGit(*repository)
+	if err != nil {
+		slog.ErrorContext(ctx, "Error while creating PokeAPI client", slog.Any("err", err))
+		return
+	}
+	p, err := pokeClient.GetPokemonForm(ctx, *pokemon)
 	if err != nil {
 		if errors.Is(err, pokeapi.ErrNotFound) {
 			slog.ErrorContext(ctx, "Pokemon not found", slog.String("pokemon", *pokemon))
@@ -45,7 +49,7 @@ func main() {
 		return
 	}
 
-	pokemonImage, err := pokeClient.GetSprite(ctx, p.Sprites.Other.OfficialArtwork.FrontDefault)
+	pokemonImage, err := pokeClient.GetSprite(ctx, p.Sprite)
 	if err != nil {
 		slog.Error("Error while getting Pokemon image", slog.Any("err", err))
 		return
