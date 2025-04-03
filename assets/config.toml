@@ -47,6 +47,13 @@ background_icon = "max_raid.png"
 background_icon_scale = 1.0
 pokemon_scale = 1.0
 
+[[events]]
+name = "Hatch Day"
+background = "generic_day.png"
+background_icon = "egg.png"
+background_icon_scale = 1.0
+pokemon_scale = 1.0
+
 [[cosmetics]]
 name = "CA Star"
 image = "ca_star.png"
