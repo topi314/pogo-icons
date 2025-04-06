@@ -6,23 +6,25 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/fs"
 	"log/slog"
 	"os"
 	"os/signal"
+	"path"
+	"strings"
+
+	"github.com/BurntSushi/toml"
 
 	"github.com/topi314/pogo-icons/internal/pogoicon"
 	"github.com/topi314/pogo-icons/internal/pokeapi"
+	"github.com/topi314/pogo-icons/pogoicons"
 )
 
 func main() {
-	background := flag.String("background", "generic", "Background image name (default: generic)")
-	backgroundIcon := flag.String("background-icon", "", "Background icon name")
-	backgroundIconScale := flag.Float64("background-icon-scale", 1.0, "Background icon scale (default: 1.0)")
-	pokemon := flag.String("pokemon", "", "Pokemon name or ID")
-	pokemonScale := flag.Float64("scale", 1, "Pokemon scale (default: 1.0)")
-	cosmetic := flag.String("cosmetic", "", "Cosmetic image name")
-	cosmeticScale := flag.Float64("cosmetic-scale", 0.15, "Cosmetic scale (default: 0.2)")
-	repository := flag.String("repository", "https://github.com/PokeAPI/api-data2", "PokeAPI repository (default: https://github.com/PokeAPI/api-data)")
+	pokemon := flag.String("pokemon", "", "A list of Pokemon names or IDs (comma separated)")
+	event := flag.String("event", "", "Event name")
+	endpoint := flag.String("endpoint", "https://pokeapi.co/api/v2", "PokeAPI endpoint URL (default: https://pokeapi.co/api/v2)")
+	assets := flag.String("assets", "assets", "Assets directory (default: assets)")
 	output := flag.String("output", "output.png", "Output file name (default: output.png)")
 	flag.Parse()
 
@@ -34,70 +36,59 @@ func main() {
 		return
 	}
 
-	pokeClient, err := pokeapi.NewGit(*repository)
-	if err != nil {
-		slog.ErrorContext(ctx, "Error while creating PokeAPI client", slog.Any("err", err))
+	if *event == "" {
+		slog.ErrorContext(ctx, "Event name is required")
 		return
 	}
-	p, err := pokeClient.GetPokemonForm(ctx, *pokemon)
+
+	pokeClient := pokeapi.NewAPI(*endpoint)
+	assetsDir := os.DirFS(*assets)
+
+	assetConfig, err := fs.ReadFile(assetsDir, "assets/config.toml")
 	if err != nil {
-		if errors.Is(err, pokeapi.ErrNotFound) {
-			slog.ErrorContext(ctx, "Pokemon not found", slog.String("pokemon", *pokemon))
-			return
+		slog.ErrorContext(ctx, "Error while reading asset config", slog.Any("err", err))
+		return
+	}
+	var assetCfg pogoicons.AssetConfig
+	if err = toml.Unmarshal(assetConfig, &assetCfg); err != nil {
+		slog.ErrorContext(ctx, "Error while unmarshalling events", slog.Any("err", err))
+		return
+	}
+
+	var eventCfg *pogoicons.EventConfig
+	for _, e := range assetCfg.Events {
+		if e.Name == *event {
+			eventCfg = &e
+			break
 		}
-		slog.ErrorContext(ctx, "Error while getting Pokemon", slog.Any("err", err))
+	}
+	if eventCfg == nil {
+		slog.ErrorContext(ctx, "Event not found", slog.String("event", *event))
 		return
 	}
 
-	pokemonImage, err := pokeClient.GetSprite(ctx, p.Sprite)
-	if err != nil {
-		slog.Error("Error while getting Pokemon image", slog.Any("err", err))
-		return
-	}
-	defer pokemonImage.Body.Close()
-
-	backgroundImage, err := os.Open(fmt.Sprintf("assets/backgrounds/%s.png", *background))
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			slog.ErrorContext(ctx, "Background image not found", slog.String("background", *background))
-			return
-		}
-		slog.ErrorContext(ctx, "Error while opening background", slog.Any("err", err))
-		return
-	}
-	defer backgroundImage.Close()
-
-	var backgroundIconImage io.Reader
-	if *backgroundIcon != "" {
-		img, err := os.Open(fmt.Sprintf("assets/background_icons/%s.png", *backgroundIcon))
+	var pokemonImages []io.Reader
+	for _, p := range strings.Split(*pokemon, ",") {
+		pf, err := pokeClient.GetPokemonForm(ctx, p)
 		if err != nil {
-			if errors.Is(err, os.ErrNotExist) {
-				slog.ErrorContext(ctx, "Background icon image not found", slog.String("background-icon", *backgroundIcon))
+			if errors.Is(err, pokeapi.ErrNotFound) {
+				slog.ErrorContext(ctx, "Pokemon not found", slog.String("pokemon", p))
 				return
 			}
-			slog.ErrorContext(ctx, "Error while opening background icon", slog.Any("err", err))
+			slog.ErrorContext(ctx, "Error while getting Pokemon", slog.Any("err", err))
 			return
 		}
-		defer img.Close()
-		backgroundIconImage = img
-	}
 
-	var cosmeticImage io.Reader
-	if *cosmetic != "" {
-		img, err := os.Open(fmt.Sprintf("assets/cosmetics/%s.png", *cosmetic))
+		pokemonImage, err := pokeClient.GetSprite(ctx, pf.Sprite)
 		if err != nil {
-			if errors.Is(err, os.ErrNotExist) {
-				slog.ErrorContext(ctx, "Cosmetic image not found", slog.String("cosmetic", *cosmetic))
-				return
-			}
-			slog.ErrorContext(ctx, "Error while opening cosmetic", slog.Any("err", err))
+			slog.Error("Error while getting Pokemon image", slog.Any("err", err))
 			return
 		}
-		defer img.Close()
-		cosmeticImage = img
+		defer pokemonImage.Body.Close()
+		pokemonImages = append(pokemonImages, pokemonImage.Body)
 	}
 
-	r, err := pogoicon.Generate(backgroundImage, backgroundIconImage, *backgroundIconScale, pokemonImage.Body, *pokemonScale, cosmeticImage, *cosmeticScale)
+	r, err := pogoicon.Generate(backgroundImage)
 	if err != nil {
 		slog.ErrorContext(ctx, "Error while generating image", slog.Any("err", err))
 		return

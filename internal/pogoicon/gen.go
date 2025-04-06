@@ -7,121 +7,57 @@ import (
 	_ "image/jpeg"
 	"image/png"
 	"io"
+	"io/fs"
+	"math"
+	"path"
 
 	"golang.org/x/image/draw"
 )
 
-type Template struct {
-	// Background is the base image, the background sets the size of the final image.
-	Background io.Reader `json:"background"`
+func Generate(assets fs.FS, event EventConfig) (io.Reader, error) {
+	background, err := assets.Open(path.Join("assets/backgrounds", event.Background))
+	if err != nil {
+		return nil, fmt.Errorf("failed to open background asset: %w", err)
+	}
+	defer background.Close()
 
-	Overlays []OverlayTemplate `json:"overlays"`
+	overlays := make([]Overlay, 0, len(event.Overlays))
+	for _, overlay := range event.Overlays {
+		img, err := assets.Open(path.Join("assets/icons", overlay.Image))
+		if err != nil {
+			return nil, fmt.Errorf("failed to open overlay asset: %w", err)
+		}
+		defer img.Close()
+
+		overlays = append(overlays, Overlay{
+			Image:    img,
+			ScaleX:   overlay.ScaleX,
+			ScaleY:   overlay.ScaleY,
+			Position: overlay.Position,
+			OffsetX:  overlay.OffsetX,
+			OffsetY:  overlay.OffsetY,
+			FlipX:    overlay.FlipX,
+			FlipY:    overlay.FlipY,
+			Rotate:   overlay.Rotate,
+		})
+	}
+
+	return generate(background, overlays)
 }
 
-type Position string
-
-const (
-	PositionTop      Position = "top"
-	PositionTopLeft  Position = "top-left"
-	PositionTopRight Position = "top-right"
-
-	PositionBottom      Position = "bottom"
-	PositionBottomLeft  Position = "bottom-left"
-	PositionBottomRight Position = "bottom-right"
-
-	PositionCenter Position = "center"
-	PositionLeft   Position = "left"
-	PositionRight  Position = "right"
-)
-
-type OverlayTemplate struct {
-	// Image is the overlay image.
-	Image io.Reader
-	// ScaleX is the scale of the overlay image relative to the background image in the horizontal direction.
-	// Use 0.0 to keep the original aspect ratio.
-	ScaleX float64
-	// ScaleY is the scale of the overlay image relative to the background image in the vertical direction.
-	// Use 0.0 to keep the original aspect ratio.
-	ScaleY float64
-	// Position is the position of the overlay image.
-	Position Position
-	// OffsetX is the x offset of the overlay image.
-	OffsetX int
-	// OffsetY is the y offset of the overlay image.
-	OffsetY int
-	// Opacity is the opacity of the overlay image.
-	// 0.0 is fully transparent, 1.0 is fully opaque.
-	Opacity float64
-	// FlipX is whether to flip the overlay image horizontally.
-	FlipX bool
-	// FlipY is whether to flip the overlay image vertically.
-	FlipY bool
-	// Rotate is the rotation of the overlay image in degrees.
-	Rotate float64
-}
-
-func Generate(background io.Reader, backgroundIcon io.Reader, backgroundIconScale float64, pokemon io.Reader, pokemonScale float64, cosmetic io.Reader, cosmeticScale float64) (io.Reader, error) {
+func generate(background io.Reader, overlays []Overlay) (io.Reader, error) {
 	backgroundImage, _, err := image.Decode(background)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode background image: %w", err)
 	}
 
-	var backgroundIconImage image.Image
-	if backgroundIcon != nil {
-		backgroundIconImage, _, err = image.Decode(backgroundIcon)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode background icon image: %w", err)
-		}
-	}
-
-	pokemonImage, _, err := image.Decode(pokemon)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode pokemon image: %w", err)
-	}
-
-	var cosmeticImage image.Image
-	if cosmetic != nil {
-		cosmeticImage, _, err = image.Decode(cosmetic)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode cosmetic image: %w", err)
-		}
-	}
-
 	newImage := image.NewRGBA(backgroundImage.Bounds())
 	draw.Draw(newImage, newImage.Bounds(), backgroundImage, image.Point{}, draw.Src)
 
-	if backgroundIconImage != nil {
-		scaledBackgroundIconHeight := int(float64(backgroundImage.Bounds().Dy()) * backgroundIconScale)
-		scaledBackgroundIconWidth := int(float64(backgroundIconImage.Bounds().Dx()) * (float64(scaledBackgroundIconHeight) / float64(backgroundIconImage.Bounds().Dy())))
-
-		scaledBackgroundIcon := image.NewRGBA(image.Rect(0, 0, scaledBackgroundIconWidth, scaledBackgroundIconHeight))
-		draw.BiLinear.Scale(scaledBackgroundIcon, scaledBackgroundIcon.Bounds(), backgroundIconImage, backgroundIconImage.Bounds(), draw.Over, nil)
-
-		backgroundIconXOffset := (backgroundImage.Bounds().Dx() - scaledBackgroundIconWidth) / 2
-		backgroundIconYOffset := (backgroundImage.Bounds().Dy() - scaledBackgroundIconHeight) / 2
-		draw.Draw(newImage, image.Rect(backgroundIconXOffset, backgroundIconYOffset, backgroundIconXOffset+scaledBackgroundIconWidth, backgroundIconYOffset+scaledBackgroundIconHeight), scaledBackgroundIcon, image.Point{}, draw.Over)
-	}
-
-	scaledHeight := int(float64(backgroundImage.Bounds().Dy()) * pokemonScale)
-	scaledWidth := int(float64(pokemonImage.Bounds().Dx()) * pokemonScale)
-
-	scaledPokemon := image.NewRGBA(image.Rect(0, 0, scaledWidth, scaledHeight))
-	draw.BiLinear.Scale(scaledPokemon, scaledPokemon.Bounds(), pokemonImage, pokemonImage.Bounds(), draw.Over, nil)
-
-	pokemonXOffset := (backgroundImage.Bounds().Dx() - scaledWidth) / 2
-	pokemonYOffset := (backgroundImage.Bounds().Dy() - scaledHeight) / 2
-	draw.Draw(newImage, image.Rect(pokemonXOffset, pokemonYOffset, pokemonXOffset+scaledWidth, pokemonYOffset+scaledHeight), scaledPokemon, image.Point{}, draw.Over)
-
-	if cosmeticImage != nil {
-		cosmeticHeight := int(float64(backgroundImage.Bounds().Dy()) * cosmeticScale)
-		cosmeticWidth := int(float64(cosmeticImage.Bounds().Dx()) * (float64(cosmeticHeight) / float64(cosmeticImage.Bounds().Dy())))
-
-		scaledCosmetic := image.NewRGBA(image.Rect(0, 0, cosmeticWidth, cosmeticHeight))
-		draw.BiLinear.Scale(scaledCosmetic, scaledCosmetic.Bounds(), cosmeticImage, cosmeticImage.Bounds(), draw.Over, nil)
-
-		cosmeticXOffset := pokemonXOffset
-		cosmeticYOffset := pokemonYOffset
-		draw.Draw(newImage, image.Rect(cosmeticXOffset, cosmeticYOffset, cosmeticXOffset+cosmeticWidth, cosmeticYOffset+cosmeticHeight), scaledCosmetic, image.Point{}, draw.Over)
+	for _, overlay := range overlays {
+		if err = applyOverlay(newImage, overlay); err != nil {
+			return nil, fmt.Errorf("failed to overlay template: %w", err)
+		}
 	}
 
 	buf := new(bytes.Buffer)
@@ -131,7 +67,7 @@ func Generate(background io.Reader, backgroundIcon io.Reader, backgroundIconScal
 	return bytes.NewReader(buf.Bytes()), nil
 }
 
-func overlayTemplate(baseImg *image.RGBA, overlay OverlayTemplate) error {
+func applyOverlay(baseImg *image.RGBA, overlay Overlay) error {
 	img, _, err := image.Decode(overlay.Image)
 	if err != nil {
 		return fmt.Errorf("failed to decode image: %w", err)
@@ -151,6 +87,53 @@ func overlayTemplate(baseImg *image.RGBA, overlay OverlayTemplate) error {
 	} else {
 		scaledHeight = img.Bounds().Dy()
 	}
+	img = resizeImage(img, float64(scaledWidth)/float64(img.Bounds().Dx()), float64(scaledHeight)/float64(img.Bounds().Dy()))
+	img = flipImage(img, overlay.FlipX, overlay.FlipY)
+	img = rotateImage(img, overlay.Rotate)
+
+	bounds := img.Bounds()
+	var (
+		offsetX int
+		offsetY int
+	)
+	switch overlay.Position {
+	case PositionTop:
+		offsetY = 0
+	case PositionTopLeft:
+		offsetX = 0
+		offsetY = 0
+	case PositionTopRight:
+		offsetX = baseImg.Bounds().Dx() - bounds.Dx()
+		offsetY = 0
+	case PositionBottom:
+		offsetY = baseImg.Bounds().Dy() - bounds.Dy()
+	case PositionBottomLeft:
+		offsetX = 0
+		offsetY = baseImg.Bounds().Dy() - bounds.Dy()
+	case PositionBottomRight:
+		offsetX = baseImg.Bounds().Dx() - bounds.Dx()
+		offsetY = baseImg.Bounds().Dy() - bounds.Dy()
+	case PositionCenter:
+		offsetX = (baseImg.Bounds().Dx() - bounds.Dx()) / 2
+		offsetY = (baseImg.Bounds().Dy() - bounds.Dy()) / 2
+	case PositionLeft:
+		offsetX = 0
+		offsetY = (baseImg.Bounds().Dy() - bounds.Dy()) / 2
+	case PositionRight:
+		offsetX = baseImg.Bounds().Dx() - bounds.Dx()
+		offsetY = (baseImg.Bounds().Dy() - bounds.Dy()) / 2
+	default:
+		return fmt.Errorf("invalid position: %s", overlay.Position)
+	}
+	offsetX += overlay.OffsetX
+	offsetY += overlay.OffsetY
+
+	draw.Draw(baseImg, baseImg.Bounds(), img, image.Point{
+		X: offsetX,
+		Y: offsetY,
+	}, draw.Over)
+
+	return nil
 }
 
 func resizeImage(img image.Image, scaleX float64, scaleY float64) image.Image {
@@ -161,4 +144,50 @@ func resizeImage(img image.Image, scaleX float64, scaleY float64) image.Image {
 	resizedImg := image.NewRGBA(image.Rect(0, 0, newWidth, newHeight))
 	draw.BiLinear.Scale(resizedImg, resizedImg.Bounds(), img, bounds, draw.Over, nil)
 	return resizedImg
+}
+
+func flipImage(img image.Image, flipX bool, flipY bool) image.Image {
+	if flipX {
+		img = flipXImage(img)
+	}
+	if flipY {
+		img = flipYImage(img)
+	}
+	return img
+}
+
+func flipXImage(img image.Image) image.Image {
+	bounds := img.Bounds()
+	newImg := image.NewRGBA(bounds)
+	for y := 0; y < bounds.Dy(); y++ {
+		for x := 0; x < bounds.Dx(); x++ {
+			newImg.Set(bounds.Dx()-1-x, y, img.At(x, y))
+		}
+	}
+	return newImg
+}
+
+func flipYImage(img image.Image) image.Image {
+	bounds := img.Bounds()
+	newImg := image.NewRGBA(bounds)
+	for y := 0; y < bounds.Dy(); y++ {
+		for x := 0; x < bounds.Dx(); x++ {
+			newImg.Set(x, bounds.Dy()-1-y, img.At(x, y))
+		}
+	}
+	return newImg
+}
+
+func rotateImage(img image.Image, angle float64) image.Image {
+	bounds := img.Bounds()
+	newImg := image.NewRGBA(bounds)
+	angle = angle * (3.141592653589793 / 180.0) // Convert degrees to radians
+	for y := 0; y < bounds.Dy(); y++ {
+		for x := 0; x < bounds.Dx(); x++ {
+			newX := int(float64(x)*math.Cos(angle) - float64(y)*math.Sin(angle))
+			newY := int(float64(x)*math.Sin(angle) + float64(y)*math.Cos(angle))
+			newImg.Set(newX, newY, img.At(x, y))
+		}
+	}
+	return newImg
 }
