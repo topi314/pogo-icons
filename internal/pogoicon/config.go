@@ -20,6 +20,7 @@ const (
 	PositionRight  Position = "right"
 )
 
+// Overlay represents an overlay image to be applied to the background image.
 type Overlay struct {
 	// Image is the overlay image.
 	Image io.Reader
@@ -32,42 +33,13 @@ type Overlay struct {
 	// Position is the position of the overlay image.
 	Position Position
 	// OffsetX is the x offset of the overlay image.
-	OffsetX int
+	OffsetX float64
 	// OffsetY is the y offset of the overlay image.
-	OffsetY int
+	OffsetY float64
 	// FlipX is whether to flip the overlay image horizontally.
 	FlipX bool
 	// FlipY is whether to flip the overlay image vertically.
 	FlipY bool
 	// Rotate is the rotation of the overlay image in degrees.
 	Rotate float64
-}
-
-type AssetConfig struct {
-	Events    []EventConfig    `toml:"events"`
-	Cosmetics []CosmeticConfig `toml:"cosmetics"`
-}
-
-type EventConfig struct {
-	Name       string          `toml:"name"`
-	Background string          `toml:"background"`
-	Overlays   []OverlayConfig `toml:"overlays"`
-}
-
-type OverlayConfig struct {
-	Image    string
-	ScaleX   float64
-	ScaleY   float64
-	Position Position
-	OffsetX  int
-	OffsetY  int
-	FlipX    bool
-	FlipY    bool
-	Rotate   float64
-}
-
-type CosmeticConfig struct {
-	Name  string  `toml:"name"`
-	Image string  `toml:"image"`
-	Scale float64 `toml:"scale"`
 }

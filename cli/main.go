@@ -4,13 +4,11 @@ import (
 	"context"
 	"errors"
 	"flag"
-	"fmt"
 	"io"
 	"io/fs"
 	"log/slog"
 	"os"
 	"os/signal"
-	"path"
 	"strings"
 
 	"github.com/BurntSushi/toml"
