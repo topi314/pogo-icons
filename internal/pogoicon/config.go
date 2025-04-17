@@ -4,6 +4,87 @@ import (
 	"io"
 )
 
+var pokemonLayerConfigs = []func() []Layer{
+	func() []Layer {
+		return []Layer{
+			{
+				Position: PositionCenter,
+			},
+		}
+	},
+	func() []Layer {
+		return []Layer{
+			{
+				Position: PositionCenter,
+				ScaleY:   0.6,
+				OffsetX:  -0.4,
+			},
+			{
+				Position: PositionCenter,
+				ScaleY:   0.6,
+				OffsetX:  0.4,
+			},
+		}
+	},
+	func() []Layer {
+		return []Layer{
+			{
+				Position: PositionCenter,
+				ScaleY:   0.6,
+				OffsetY:  -0.4,
+			},
+			{
+				Position: PositionCenter,
+				ScaleY:   0.6,
+				OffsetX:  0.4,
+				OffsetY:  0.4,
+			},
+			{
+				Position: PositionCenter,
+				ScaleY:   0.6,
+				OffsetX:  -0.4,
+				OffsetY:  0.4,
+			},
+		}
+	},
+	func() []Layer {
+		return []Layer{
+			{
+				Position: PositionCenter,
+				ScaleY:   0.6,
+				OffsetX:  -0.4,
+				OffsetY:  -0.4,
+			},
+			{
+				Position: PositionCenter,
+				ScaleY:   0.6,
+				OffsetX:  0.4,
+				OffsetY:  -0.4,
+			},
+			{
+				Position: PositionCenter,
+				ScaleY:   0.6,
+				OffsetX:  0.4,
+				OffsetY:  0.4,
+			},
+			{
+				Position: PositionCenter,
+				ScaleY:   0.6,
+				OffsetX:  -0.4,
+				OffsetY:  0.4,
+			},
+		}
+	},
+}
+
+type LayerID int
+
+const (
+	LayerIDBackground LayerID = 0
+	LayerIDPokemon    LayerID = 1
+	LayerIDCosmetic   LayerID = 2
+)
+
 type Position string
 
 const (
@@ -20,10 +101,12 @@ const (
 	PositionRight  Position = "right"
 )
 
-// Overlay represents an overlay image to be applied to the background image.
-type Overlay struct {
-	// Image is the overlay image.
-	Image io.Reader
+// Layer represents an overlay image to be applied to the background image.
+type Layer struct {
+	// ID is the ID of the overlay.
+	ID LayerID
+	// Image is the asset path of the overlay image.
+	Image string
 	// ScaleX is the scale of the overlay image relative to the background image in the horizontal direction.
 	// Use 0.0 to keep the original aspect ratio.
 	ScaleX float64
@@ -42,4 +125,9 @@ type Overlay struct {
 	FlipY bool
 	// Rotate is the rotation of the overlay image in degrees.
 	Rotate float64
+}
+
+type imageLayer struct {
+	Image io.Reader
+	Layer
 }

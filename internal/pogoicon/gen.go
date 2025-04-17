@@ -7,15 +7,67 @@ import (
 	_ "image/jpeg"
 	"image/png"
 	"io"
+	"io/fs"
 	"math"
+	"slices"
 
 	"golang.org/x/image/draw"
 )
 
-func Generate(overlays []Overlay) (io.Reader, error) {
+func Generate(assets fs.FS, pokemonImage func(pokemon string) (io.ReadCloser, error), pokemon []string, layers []Layer) (io.Reader, error) {
+	slices.SortFunc(layers, func(a Layer, b Layer) int {
+		if a.ID == b.ID {
+			return 0
+		}
+		if a.ID < b.ID {
+			return -1
+		}
+		return 1
+	})
+
+	index := slices.IndexFunc(layers, func(o Layer) bool {
+		return o.ID == LayerIDCosmetic
+	})
+	if index == -1 {
+		index = len(layers)
+	}
+
+	pokemonLayers := make([]imageLayer, 0, len(pokemon))
+	if len(pokemon) > 0 {
+		layerConfigs := pokemonLayerConfigs[len(pokemon)-1]()
+		for i, p := range pokemon {
+			img, err := pokemonImage(p)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get pokemon image: %w", err)
+			}
+			defer img.Close()
+
+			pokemonLayers = append(pokemonLayers, imageLayer{
+				Image: img,
+				Layer: layerConfigs[i],
+			})
+		}
+	}
+
+	imgLayers := make([]imageLayer, 0, len(layers))
+	for _, overlay := range layers {
+		img, err := assets.Open(overlay.Image)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open layer image: %w", err)
+		}
+		defer img.Close()
+
+		imgLayers = append(imgLayers, imageLayer{
+			Image: img,
+			Layer: overlay,
+		})
+	}
+
+	imgLayers = slices.Insert(imgLayers, index, pokemonLayers...)
+
 	var newImage *image.RGBA
-	for i, overlay := range overlays {
-		img, _, err := image.Decode(overlay.Image)
+	for i, layer := range imgLayers {
+		img, _, err := image.Decode(layer.Image)
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode image: %w", err)
 		}
@@ -23,8 +75,8 @@ func Generate(overlays []Overlay) (io.Reader, error) {
 			newImage = image.NewRGBA(img.Bounds())
 		}
 
-		if err = applyOverlay(newImage, img, overlay); err != nil {
-			return nil, fmt.Errorf("failed to overlay template: %w", err)
+		if err = applyOverlay(newImage, img, layer); err != nil {
+			return nil, fmt.Errorf("failed to layer template: %w", err)
 		}
 	}
 
@@ -35,10 +87,10 @@ func Generate(overlays []Overlay) (io.Reader, error) {
 	return bytes.NewReader(buf.Bytes()), nil
 }
 
-func applyOverlay(baseImg *image.RGBA, img image.Image, overlay Overlay) error {
-	img = resizeImage(baseImg, img, overlay.ScaleX, overlay.ScaleY)
-	img = flipImage(img, overlay.FlipX, overlay.FlipY)
-	img = rotateImage(img, overlay.Rotate)
+func applyOverlay(baseImg *image.RGBA, img image.Image, layer imageLayer) error {
+	img = resizeLayer(baseImg, img, layer.ScaleX, layer.ScaleY)
+	img = flipLayer(img, layer.FlipX, layer.FlipY)
+	img = rotateLayer(img, layer.Rotate)
 
 	bounds := img.Bounds()
 	baseBounds := baseImg.Bounds()
@@ -46,7 +98,7 @@ func applyOverlay(baseImg *image.RGBA, img image.Image, overlay Overlay) error {
 		offsetX int
 		offsetY int
 	)
-	switch overlay.Position {
+	switch layer.Position {
 	case PositionTop:
 		offsetX = baseBounds.Dx() / 2
 		offsetY = 0
@@ -75,13 +127,13 @@ func applyOverlay(baseImg *image.RGBA, img image.Image, overlay Overlay) error {
 		offsetX = baseBounds.Dx() - bounds.Dx()
 		offsetY = (baseBounds.Dy() - bounds.Dy()) / 2
 	default:
-		return fmt.Errorf("invalid position: %s", overlay.Position)
+		return fmt.Errorf("invalid layer position: %s", layer.Position)
 	}
-	if overlay.OffsetX != 0 {
-		offsetX += int(float64(bounds.Dx()) * overlay.OffsetX)
+	if layer.OffsetX != 0 {
+		offsetX += int(float64(bounds.Dx()) * layer.OffsetX)
 	}
-	if overlay.OffsetY != 0 {
-		offsetY += int(float64(bounds.Dy()) * overlay.OffsetY)
+	if layer.OffsetY != 0 {
+		offsetY += int(float64(bounds.Dy()) * layer.OffsetY)
 	}
 
 	draw.Draw(baseImg, image.Rect(offsetX, offsetY, offsetX+bounds.Dx(), offsetY+bounds.Dy()), img, image.Point{}, draw.Over)
@@ -89,7 +141,7 @@ func applyOverlay(baseImg *image.RGBA, img image.Image, overlay Overlay) error {
 	return nil
 }
 
-func resizeImage(baseImg image.Image, img image.Image, scaleX float64, scaleY float64) image.Image {
+func resizeLayer(baseImg image.Image, img image.Image, scaleX float64, scaleY float64) image.Image {
 	bounds := img.Bounds()
 	baseBounds := baseImg.Bounds()
 
@@ -110,17 +162,17 @@ func resizeImage(baseImg image.Image, img image.Image, scaleX float64, scaleY fl
 	return resizedImg
 }
 
-func flipImage(img image.Image, flipX bool, flipY bool) image.Image {
+func flipLayer(img image.Image, flipX bool, flipY bool) image.Image {
 	if flipX {
-		img = flipXImage(img)
+		img = flipXLayer(img)
 	}
 	if flipY {
-		img = flipYImage(img)
+		img = flipYLayer(img)
 	}
 	return img
 }
 
-func flipXImage(img image.Image) image.Image {
+func flipXLayer(img image.Image) image.Image {
 	bounds := img.Bounds()
 	newImg := image.NewRGBA(bounds)
 	for y := 0; y < bounds.Dy(); y++ {
@@ -131,7 +183,7 @@ func flipXImage(img image.Image) image.Image {
 	return newImg
 }
 
-func flipYImage(img image.Image) image.Image {
+func flipYLayer(img image.Image) image.Image {
 	bounds := img.Bounds()
 	newImg := image.NewRGBA(bounds)
 	for y := 0; y < bounds.Dy(); y++ {
@@ -142,10 +194,11 @@ func flipYImage(img image.Image) image.Image {
 	return newImg
 }
 
-func rotateImage(img image.Image, angle float64) image.Image {
+func rotateLayer(img image.Image, angle float64) image.Image {
 	bounds := img.Bounds()
 	newImg := image.NewRGBA(bounds)
-	angle = angle * (3.141592653589793 / 180.0) // Convert degrees to radians
+
+	angle = angle * (math.Pi / 180.0) // Convert degrees to radians
 	for y := 0; y < bounds.Dy(); y++ {
 		for x := 0; x < bounds.Dx(); x++ {
 			newX := int(float64(x)*math.Cos(angle) - float64(y)*math.Sin(angle))

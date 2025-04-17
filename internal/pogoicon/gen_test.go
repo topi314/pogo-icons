@@ -1,4 +1,4 @@
-package gen
+package pogoicon
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/topi314/pogo-icons/internal/pogoicon"
 	"github.com/topi314/pogo-icons/internal/pokeapi"
 )
 
@@ -27,16 +26,16 @@ func TestGenerate(t *testing.T) {
 	}
 
 	pokemon := []string{"charizard", "blastoise"}
-	overlays := []OverlayConfig{
+	overlays := []Layer{
 		{
 			ID:       LayerIDBackground,
 			Image:    "backgrounds/generic_day.png",
-			Position: pogoicon.PositionTopLeft,
+			Position: PositionTopLeft,
 		},
 		{
 			ID:       LayerIDCosmetic,
 			Image:    "icons/ca_star.png",
-			Position: pogoicon.PositionTopLeft,
+			Position: PositionTopLeft,
 			ScaleY:   0.2,
 			OffsetX:  2.5,
 		},
