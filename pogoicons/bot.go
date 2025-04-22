@@ -2,22 +2,25 @@ package pogoicons
 
 import (
 	"context"
+	"io"
 	"io/fs"
 	"log/slog"
+	"time"
 
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/handler"
 
+	"github.com/topi314/pogo-icons/internal/pogoicon"
 	"github.com/topi314/pogo-icons/internal/pokeapi"
 )
 
-func New(client bot.Client, pokeClient pokeapi.Client, cfg Config, version string, goVersion string, assets fs.FS, assetCfg AssetConfig) *Bot {
+func New(client bot.Client, pokeClient pokeapi.Client, cfg Config, version string, goVersion string, assets fs.FS, iconCfg pogoicon.Config) *Bot {
 	s := &Bot{
 		cfg:        cfg,
 		version:    version,
 		goVersion:  goVersion,
 		assets:     assets,
-		assetCfg:   assetCfg,
+		iconCfg:    iconCfg,
 		client:     client,
 		pokeClient: pokeClient,
 	}
@@ -32,7 +35,7 @@ type Bot struct {
 	version    string
 	goVersion  string
 	assets     fs.FS
-	assetCfg   AssetConfig
+	iconCfg    pogoicon.Config
 	client     bot.Client
 	pokeClient pokeapi.Client
 }
@@ -56,4 +59,21 @@ func (b *Bot) Start() {
 		b.client.Logger().Error("failed to open gateway", err)
 		return
 	}
+}
+
+func (b *Bot) getPokemonImage(p string) (io.ReadCloser, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	pf, err := b.pokeClient.GetPokemonForm(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+
+	rs, err := b.pokeClient.GetSprite(ctx, pf.Sprite)
+	if err != nil {
+		return nil, err
+	}
+
+	return rs.Body, nil
 }

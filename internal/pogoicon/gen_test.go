@@ -12,38 +12,110 @@ import (
 func TestGenerate(t *testing.T) {
 	client := pokeapi.NewAPI("https://pokeapi.co/api/v2/")
 
-	var getPokemonImage = func(pokemon string) (io.ReadCloser, error) {
-		p, err := client.GetPokemonForm(context.Background(), pokemon)
+	event := "test"
+	pokemon := []string{"venusaur", "charizard", "blastoise"}
+	cosmetics := []string{"CA Star"}
+	cfg := Config{
+		Events: []EventConfig{
+			{
+				Name: "test",
+				Layers: []Layer{
+					{
+						ID:       LayerIDBackground,
+						Image:    "backgrounds/generic_day.png",
+						Position: PositionTopLeft,
+					},
+					{
+						ID:       LayerIDCosmetic,
+						Image:    "icons/ca_star.png",
+						Position: PositionTopLeft,
+						ScaleY:   0.2,
+						OffsetX:  2.5,
+					},
+				},
+			},
+		},
+		Cosmetics: []CosmeticConfig{
+			{
+				Name: "CA Star",
+				Layers: []Layer{
+					{
+						ID:       LayerIDCosmetic,
+						Image:    "icons/ca_star.png",
+						Position: PositionTopLeft,
+						ScaleY:   0.2,
+						OffsetX:  2.5,
+					},
+				},
+			},
+		},
+		PokemonLayers: []PokemonConfig{
+			{
+				Layers: []Layer{
+					{
+						ID:       LayerIDPokemon,
+						Position: PositionCenter,
+					},
+				},
+			},
+			{
+				Layers: []Layer{
+					{
+						ID:       LayerIDPokemon,
+						Position: PositionCenter,
+						ScaleY:   0.6,
+						OffsetX:  -0.4,
+					},
+					{
+						ID:       LayerIDPokemon,
+						Position: PositionCenter,
+						ScaleY:   0.6,
+						OffsetX:  0.4,
+					},
+				},
+			},
+			{
+				Layers: []Layer{
+					{
+						ID:       LayerIDPokemon,
+						Position: PositionCenter,
+						ScaleY:   0.6,
+						OffsetY:  -0.4,
+					},
+					{
+						ID:       LayerIDPokemon,
+						Position: PositionCenter,
+						ScaleY:   0.6,
+						OffsetX:  0.4,
+						OffsetY:  0.4,
+					},
+					{
+						ID:       LayerIDPokemon,
+						Position: PositionCenter,
+						ScaleY:   0.6,
+						OffsetX:  -0.4,
+						OffsetY:  0.4,
+					},
+				},
+			},
+		},
+	}
+
+	var getPokemonImage = func(p string) (io.ReadCloser, error) {
+		pf, err := client.GetPokemonForm(context.Background(), p)
 		if err != nil {
 			return nil, err
 		}
-		t.Logf("sprite: %s", p.Sprite)
-		sprite, err := client.GetSprite(context.Background(), p.Sprite)
+		sprite, err := client.GetSprite(context.Background(), pf.Sprite)
 		if err != nil {
 			return nil, err
 		}
 		return sprite.Body, nil
 	}
 
-	pokemon := []string{"charizard", "blastoise"}
-	overlays := []Layer{
-		{
-			ID:       LayerIDBackground,
-			Image:    "backgrounds/generic_day.png",
-			Position: PositionTopLeft,
-		},
-		{
-			ID:       LayerIDCosmetic,
-			Image:    "icons/ca_star.png",
-			Position: PositionTopLeft,
-			ScaleY:   0.2,
-			OffsetX:  2.5,
-		},
-	}
-
 	assets := os.DirFS("../../assets")
 
-	img, err := Generate(assets, getPokemonImage, pokemon, overlays)
+	img, err := Generate(assets, cfg, getPokemonImage, event, pokemon, cosmetics)
 	if err != nil {
 		t.Fatalf("failed to generate image: %v", err)
 	}

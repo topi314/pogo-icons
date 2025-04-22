@@ -14,12 +14,25 @@ import (
 	"golang.org/x/image/draw"
 )
 
-func Generate(assets fs.FS, pokemonImage func(pokemon string) (io.ReadCloser, error), pokemon []string, layers []Layer) (io.Reader, error) {
+func Generate(assets fs.FS, cfg Config, pokemonImage func(p string) (io.ReadCloser, error), event string, pokemon []string, cosmetics []string) (io.Reader, error) {
+	var eventCfg EventConfig
+	for _, e := range cfg.Events {
+		if e.Name == event {
+			eventCfg = e
+			break
+		}
+	}
+	if eventCfg.Name == "" {
+		return nil, fmt.Errorf("event %q not found", event)
+	}
+
+	layers := eventCfg.Layers
+
 	slices.SortFunc(layers, func(a Layer, b Layer) int {
-		if a.ID == b.ID {
+		if a.ID.Order() == b.ID.Order() {
 			return 0
 		}
-		if a.ID < b.ID {
+		if a.ID.Order() < b.ID.Order() {
 			return -1
 		}
 		return 1
@@ -34,24 +47,23 @@ func Generate(assets fs.FS, pokemonImage func(pokemon string) (io.ReadCloser, er
 
 	pokemonLayers := make([]imageLayer, 0, len(pokemon))
 	if len(pokemon) > 0 {
-		layerConfigs := pokemonLayerConfigs[len(pokemon)-1]()
+		pLayers := cfg.PokemonLayers[len(pokemon)-1].Layers
 		for i, p := range pokemon {
 			img, err := pokemonImage(p)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get pokemon image: %w", err)
 			}
 			defer img.Close()
-
 			pokemonLayers = append(pokemonLayers, imageLayer{
 				Image: img,
-				Layer: layerConfigs[i],
+				Layer: pLayers[i],
 			})
 		}
 	}
 
 	imgLayers := make([]imageLayer, 0, len(layers))
-	for _, overlay := range layers {
-		img, err := assets.Open(overlay.Image)
+	for _, layer := range layers {
+		img, err := assets.Open(layer.Image)
 		if err != nil {
 			return nil, fmt.Errorf("failed to open layer image: %w", err)
 		}
@@ -59,11 +71,33 @@ func Generate(assets fs.FS, pokemonImage func(pokemon string) (io.ReadCloser, er
 
 		imgLayers = append(imgLayers, imageLayer{
 			Image: img,
-			Layer: overlay,
+			Layer: layer,
 		})
 	}
 
 	imgLayers = slices.Insert(imgLayers, index, pokemonLayers...)
+
+	for _, c := range cosmetics {
+		i := slices.IndexFunc(cfg.Cosmetics, func(config CosmeticConfig) bool {
+			return config.Name == c
+		})
+		if i == -1 {
+			return nil, fmt.Errorf("cosmetic %q not found", c)
+		}
+
+		for _, layer := range cfg.Cosmetics[i].Layers {
+			img, err := assets.Open(layer.Image)
+			if err != nil {
+				return nil, fmt.Errorf("failed to open cosmetic image: %w", err)
+			}
+			defer img.Close()
+
+			imgLayers = append(imgLayers, imageLayer{
+				Image: img,
+				Layer: layer,
+			})
+		}
+	}
 
 	var newImage *image.RGBA
 	for i, layer := range imgLayers {

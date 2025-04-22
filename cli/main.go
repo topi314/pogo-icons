@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"io"
 	"io/fs"
@@ -15,12 +14,12 @@ import (
 
 	"github.com/topi314/pogo-icons/internal/pogoicon"
 	"github.com/topi314/pogo-icons/internal/pokeapi"
-	"github.com/topi314/pogo-icons/pogoicons"
 )
 
 func main() {
 	pokemon := flag.String("pokemon", "", "A list of Pokemon names or IDs (comma separated)")
 	event := flag.String("event", "", "Event name")
+	cosmetics := flag.String("cosmetics", "", "A list od cosmetics names (comma separated)")
 	endpoint := flag.String("endpoint", "https://pokeapi.co/api/v2", "PokeAPI endpoint URL (default: https://pokeapi.co/api/v2)")
 	assets := flag.String("assets", "assets", "Assets directory (default: assets)")
 	output := flag.String("output", "output.png", "Output file name (default: output.png)")
@@ -42,51 +41,35 @@ func main() {
 	pokeClient := pokeapi.NewAPI(*endpoint)
 	assetsDir := os.DirFS(*assets)
 
-	assetConfig, err := fs.ReadFile(assetsDir, "assets/config.toml")
+	assetConfig, err := fs.ReadFile(assetsDir, "config.toml")
 	if err != nil {
 		slog.ErrorContext(ctx, "Error while reading asset config", slog.Any("err", err))
 		return
 	}
-	var assetCfg pogoicons.AssetConfig
-	if err = toml.Unmarshal(assetConfig, &assetCfg); err != nil {
+	var cfg pogoicon.Config
+	if err = toml.Unmarshal(assetConfig, &cfg); err != nil {
 		slog.ErrorContext(ctx, "Error while unmarshalling events", slog.Any("err", err))
 		return
 	}
 
-	var eventCfg *pogoicons.EventConfig
-	for _, e := range assetCfg.Events {
-		if e.Name == *event {
-			eventCfg = &e
-			break
-		}
-	}
-	if eventCfg == nil {
-		slog.ErrorContext(ctx, "Event not found", slog.String("event", *event))
-		return
-	}
-
-	var pokemonImages []io.Reader
-	for _, p := range strings.Split(*pokemon, ",") {
+	var getPokemonImage = func(p string) (io.ReadCloser, error) {
 		pf, err := pokeClient.GetPokemonForm(ctx, p)
 		if err != nil {
-			if errors.Is(err, pokeapi.ErrNotFound) {
-				slog.ErrorContext(ctx, "Pokemon not found", slog.String("pokemon", p))
-				return
-			}
-			slog.ErrorContext(ctx, "Error while getting Pokemon", slog.Any("err", err))
-			return
+			return nil, err
 		}
 
 		pokemonImage, err := pokeClient.GetSprite(ctx, pf.Sprite)
 		if err != nil {
-			slog.Error("Error while getting Pokemon image", slog.Any("err", err))
-			return
+			return nil, err
 		}
-		defer pokemonImage.Body.Close()
-		pokemonImages = append(pokemonImages, pokemonImage.Body)
+
+		return pokemonImage.Body, nil
 	}
 
-	r, err := pogoicon.Generate(backgroundImage)
+	pokemonList := strings.Split(*pokemon, ",")
+	cosmeticList := strings.Split(*cosmetics, ",")
+
+	r, err := pogoicon.Generate(assetsDir, cfg, getPokemonImage, *event, pokemonList, cosmeticList)
 	if err != nil {
 		slog.ErrorContext(ctx, "Error while generating image", slog.Any("err", err))
 		return

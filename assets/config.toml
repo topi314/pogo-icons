@@ -1,65 +1,43 @@
 [[events]]
 name = "Generic"
-background = "generic_day.png"
-background_icon = ""
-background_icon_scale = 1.0
-pokemon_scale = 1.0
-
-[[events]]
-name = "Spotlight Hour"
-background = "spotlight_hour.png"
-background_icon = ""
-background_icon_scale = 1.0
-pokemon_scale = 1.0
-
-[[events]]
-name = "Raid"
-background = "generic_day.png"
-background_icon = "raid.png"
-background_icon_scale = 1.0
-pokemon_scale = 1.0
-
-[[events]]
-name = "Mega Raid"
-background = "generic_day.png"
-background_icon = "mega_raid.png"
-background_icon_scale = 1.0
-pokemon_scale = 1.0
-
-[[events]]
-name = "Shadow Raid"
-background = "generic_day.png"
-background_icon = "shadow_raid.png"
-background_icon_scale = 1.0
-pokemon_scale = 1.0
-
-[[events]]
-name = "Max Raid"
-background = "generic_day.png"
-background_icon = "max_raid.png"
-background_icon_scale = 1.0
-pokemon_scale = 1.0
-
-[[events]]
-name = "Community Day"
-background = "community_day.png"
-background_icon = ""
-background_icon_scale = 1.0
-pokemon_scale = 1.0
-
-[[events]]
-name = "Hatch Day"
-background = "generic_day.png"
-background_icon = "2km_egg.png"
-background_icon_scale = 1.0
-pokemon_scale = 1.0
+layers = [
+    { id = "background", image = "backgrounds/generic_day.png", position = "center" }
+]
 
 [[cosmetics]]
 name = "CA Star"
-image = "ca_star.png"
-scale = 0.3
+layers = [
+    { id = "cosmetic", image = "icons/ca_star.png", position = "top-left", scale_y = 0.2, offset_x = 2.5 }
+]
 
 [[cosmetics]]
 name = "Shiny"
-image = "shiny.png"
-scale = 0.3
+layers = [
+    { id = "cosmetic", image = "icons/shiny.png", position = "top-left", scale_y = 0.2, offset_x = 2.5 }
+]
+
+[[pokemon_layers]]
+layers = [
+    { position = "center" }
+]
+
+[[pokemon_layers]]
+layers = [
+    { position = "center", scale_y = 0.6, offset_x = -0.4 },
+    { position = "center", scale_y = 0.6, offset_x = 0.4 }
+]
+
+[[pokemon_layers]]
+layers = [
+    { position = "center", scale_y = 0.6, offset_y = -0.4 },
+    { position = "center", scale_y = 0.6, offset_x = 0.4, offset_y = 0.4 },
+    { position = "center", scale_y = 0.6, offset_x = -0.4, offset_y = 0.4 }
+]
+
+[[pokemon_layers]]
+layers = [
+    { position = "center", scale_y = 0.6, offset_x = -0.4, offset_y = -0.4 },
+    { position = "center", scale_y = 0.6, offset_x = -0.4, offset_y = -0.4 },
+    { position = "center", scale_y = 0.6, offset_x = 0.4, offset_y = 0.4 },
+    { position = "center", scale_y = 0.6, offset_x = -0.4, offset_y = 0.4 }
+]
