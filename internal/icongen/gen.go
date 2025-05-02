@@ -1,4 +1,4 @@
-package pogoicon
+package icongen
 
 import (
 	"bytes"
@@ -54,9 +54,11 @@ func Generate(assets fs.FS, cfg Config, pokemonImage func(p string) (io.ReadClos
 				return nil, fmt.Errorf("failed to get pokemon image: %w", err)
 			}
 			defer img.Close()
+			pLayer := pLayers[i]
+			pLayer.Image = p
 			pokemonLayers = append(pokemonLayers, imageLayer{
 				Image: img,
-				Layer: pLayers[i],
+				Layer: pLayer,
 			})
 		}
 	}
@@ -103,7 +105,7 @@ func Generate(assets fs.FS, cfg Config, pokemonImage func(p string) (io.ReadClos
 	for i, layer := range imgLayers {
 		img, _, err := image.Decode(layer.Image)
 		if err != nil {
-			return nil, fmt.Errorf("failed to decode image: %w", err)
+			return nil, fmt.Errorf("failed to decode image %q: %w", layer.Layer.Image, err)
 		}
 		if i == 0 {
 			newImage = image.NewRGBA(img.Bounds())

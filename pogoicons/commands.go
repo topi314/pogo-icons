@@ -12,7 +12,7 @@ import (
 	"github.com/disgoorg/json"
 	"go.gopad.dev/fuzzysearch/fuzzy"
 
-	"github.com/topi314/pogo-icons/internal/pogoicon"
+	"github.com/topi314/pogo-icons/internal/icongen"
 )
 
 func (b *Bot) commands() ([]discord.ApplicationCommandCreate, error) {
@@ -47,23 +47,34 @@ func (b *Bot) commands() ([]discord.ApplicationCommandCreate, error) {
 		},
 		discord.SlashCommandCreate{
 			Name:        "generate",
-			Description: "Generate an icon for a Pokémon",
+			Description: "Generate a Pokémon GO event icon",
 			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionString{
-					Name:         "pokemon",
-					Description:  "The Pokémon to generate an icon for",
-					Required:     true,
-					Autocomplete: true,
-				},
 				discord.ApplicationCommandOptionString{
 					Name:        "event",
 					Description: "The event this image is for",
 					Required:    true,
 					Choices:     eventChoices,
 				},
-				discord.ApplicationCommandOptionBool{
-					Name:        "shiny",
-					Description: "Whether to use the shiny variant of the Pokémon",
+				discord.ApplicationCommandOptionString{
+					Name:         "pokemon1",
+					Description:  "The Pokémon to include",
+					Required:     true,
+					Autocomplete: true,
+				},
+				discord.ApplicationCommandOptionString{
+					Name:         "pokemon2",
+					Description:  "The Pokémon to include",
+					Autocomplete: true,
+				},
+				discord.ApplicationCommandOptionString{
+					Name:         "pokemon3",
+					Description:  "The Pokémon to include",
+					Autocomplete: true,
+				},
+				discord.ApplicationCommandOptionString{
+					Name:         "pokemon4",
+					Description:  "The Pokémon to include",
+					Autocomplete: true,
 				},
 				discord.ApplicationCommandOptionString{
 					Name:        "cosmetic",
@@ -88,6 +99,7 @@ func (b *Bot) routes() bot.EventListener {
 	r.Use(middleware.Go)
 	r.SlashCommand("/info", b.onInfo)
 	r.Route("/generate", func(r handler.Router) {
+		r.Use(middleware.Defer(discord.InteractionTypeApplicationCommand, false, false))
 		r.Autocomplete("/", b.onGenerateIconAutocomplete)
 		r.SlashCommand("/", b.onGenerateIcon)
 	})
@@ -106,8 +118,8 @@ func (b *Bot) onInfo(_ discord.SlashCommandInteractionData, e *handler.CommandEv
 }
 
 func (b *Bot) onGenerateIconAutocomplete(e *handler.AutocompleteEvent) error {
-	value := e.Data.String("pokemon")
-	values := strings.Split(value, ",")
+	opt := e.Data.Focused()
+	value := e.Data.String(opt.Name)
 
 	pokemon, err := b.pokeClient.GetPokemon(e.Ctx)
 	if err != nil {
@@ -115,21 +127,19 @@ func (b *Bot) onGenerateIconAutocomplete(e *handler.AutocompleteEvent) error {
 		return e.AutocompleteResult([]discord.AutocompleteChoice{})
 	}
 
-	for _, v := range values {
-		ranks := fuzzy.RankFindNormalizedFold(v, pokemon)
-		if len(ranks) == 0 {
-			return e.AutocompleteResult([]discord.AutocompleteChoice{})
+	ranks := fuzzy.RankFindNormalizedFold(value, pokemon)
+	if len(ranks) == 0 {
+		return e.AutocompleteResult([]discord.AutocompleteChoice{})
+	}
+	choices := make([]discord.AutocompleteChoice, 0, max(25, len(ranks)))
+	for i, rank := range ranks {
+		if i >= 25 {
+			break
 		}
-		choices := make([]discord.AutocompleteChoice, 0, max(25, len(ranks)))
-		for i, rank := range ranks {
-			if i >= 25 {
-				break
-			}
-			choices = append(choices, discord.AutocompleteChoiceString{
-				Name:  rank.Target.Name,
-				Value: rank.Target.Value,
-			})
-		}
+		choices = append(choices, discord.AutocompleteChoiceString{
+			Name:  rank.Target.Name,
+			Value: rank.Target.Value,
+		})
 	}
 
 	return e.AutocompleteResult(choices)
@@ -137,24 +147,34 @@ func (b *Bot) onGenerateIconAutocomplete(e *handler.AutocompleteEvent) error {
 
 func (b *Bot) onGenerateIcon(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
 	event := data.String("event")
-	pokemon := data.String("pokemon")
-	cosmetic := data.String("cosmetic")
+	pokemonList := []string{data.String("pokemon1")}
+	if pokemon, ok := data.OptString("pokemon2"); ok {
+		pokemonList = append(pokemonList, pokemon)
+	}
+	if pokemon, ok := data.OptString("pokemon3"); ok {
+		pokemonList = append(pokemonList, pokemon)
+	}
+	if pokemon, ok := data.OptString("pokemon4"); ok {
+		pokemonList = append(pokemonList, pokemon)
+	}
+	var cosmetics []string
+	if cosmetic, ok := data.OptString("cosmetic"); ok {
+		cosmetics = append(cosmetics, cosmetic)
+	}
 
-	pokemonList := strings.Split(pokemon, ",")
-	cosmetics := strings.Split(cosmetic, ",")
-
-	icon, err := pogoicon.Generate(b.assets, b.iconCfg, b.getPokemonImage, event, pokemonList, cosmetics)
+	icon, err := icongen.Generate(b.assets, b.iconCfg, b.getPokemonImage, event, pokemonList, cosmetics)
 	if err != nil {
 		slog.ErrorContext(e.Ctx, "error generating icon", slog.Any("err", err))
 		_, err = e.UpdateInteractionResponse(discord.MessageUpdate{
 			Content: json.Ptr(fmt.Sprintf("Error generating icon: %s", err)),
 		})
+		return err
 	}
 
 	_, err = e.UpdateInteractionResponse(discord.MessageUpdate{
-		Content: json.Ptr(fmt.Sprintf("Generated icon for `%s` with `%s`", event, pokemon)),
+		Content: json.Ptr(fmt.Sprintf("Generated icon for `%s` with `%s`", event, strings.Join(pokemonList, ","))),
 		Files: []*discord.File{
-			discord.NewFile(fmt.Sprintf("%s_%s.png", strings.ReplaceAll(strings.ToLower(event), " ", "_"), pokemon), "", icon),
+			discord.NewFile(fmt.Sprintf("%s_%s.png", strings.ReplaceAll(strings.ToLower(event), " ", "_"), strings.Join(pokemonList, "_")), "", icon),
 		},
 	})
 

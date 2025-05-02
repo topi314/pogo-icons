@@ -1,4 +1,4 @@
-package pogoicon
+package icongen
 
 import (
 	"io"

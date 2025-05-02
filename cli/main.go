@@ -12,7 +12,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 
-	"github.com/topi314/pogo-icons/internal/pogoicon"
+	"github.com/topi314/pogo-icons/internal/icongen"
 	"github.com/topi314/pogo-icons/internal/pokeapi"
 )
 
@@ -46,7 +46,7 @@ func main() {
 		slog.ErrorContext(ctx, "Error while reading asset config", slog.Any("err", err))
 		return
 	}
-	var cfg pogoicon.Config
+	var cfg icongen.Config
 	if err = toml.Unmarshal(assetConfig, &cfg); err != nil {
 		slog.ErrorContext(ctx, "Error while unmarshalling events", slog.Any("err", err))
 		return
@@ -69,7 +69,7 @@ func main() {
 	pokemonList := strings.Split(*pokemon, ",")
 	cosmeticList := strings.Split(*cosmetics, ",")
 
-	r, err := pogoicon.Generate(assetsDir, cfg, getPokemonImage, *event, pokemonList, cosmeticList)
+	r, err := icongen.Generate(assetsDir, cfg, getPokemonImage, *event, pokemonList, cosmeticList)
 	if err != nil {
 		slog.ErrorContext(ctx, "Error while generating image", slog.Any("err", err))
 		return

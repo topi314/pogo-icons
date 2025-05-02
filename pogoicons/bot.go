@@ -10,11 +10,11 @@ import (
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/handler"
 
-	"github.com/topi314/pogo-icons/internal/pogoicon"
+	"github.com/topi314/pogo-icons/internal/icongen"
 	"github.com/topi314/pogo-icons/internal/pokeapi"
 )
 
-func New(client bot.Client, pokeClient pokeapi.Client, cfg Config, version string, goVersion string, assets fs.FS, iconCfg pogoicon.Config) *Bot {
+func New(client bot.Client, pokeClient pokeapi.Client, cfg Config, version string, goVersion string, assets fs.FS, iconCfg icongen.Config) *Bot {
 	s := &Bot{
 		cfg:        cfg,
 		version:    version,
@@ -35,7 +35,7 @@ type Bot struct {
 	version    string
 	goVersion  string
 	assets     fs.FS
-	iconCfg    pogoicon.Config
+	iconCfg    icongen.Config
 	client     bot.Client
 	pokeClient pokeapi.Client
 }

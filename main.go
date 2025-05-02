@@ -3,6 +3,7 @@ package main
 import (
 	"embed"
 	"flag"
+	"io/fs"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -15,6 +16,7 @@ import (
 	"github.com/disgoorg/disgo/bot"
 	"github.com/muesli/termenv"
 
+	"github.com/topi314/pogo-icons/internal/icongen"
 	"github.com/topi314/pogo-icons/internal/pokeapi"
 	"github.com/topi314/pogo-icons/pogoicons"
 )
@@ -55,9 +57,15 @@ func main() {
 		return
 	}
 
-	var assetCfg pogoicons.AssetConfig
+	var assetCfg icongen.Config
 	if err = toml.Unmarshal(assetConfig, &assetCfg); err != nil {
 		slog.Error("Error while unmarshalling events", slog.Any("err", err))
+		return
+	}
+
+	subAssets, err := fs.Sub(assets, "assets")
+	if err != nil {
+		slog.Error("Error while creating assets sub fs", slog.Any("err", err))
 		return
 	}
 
@@ -67,7 +75,7 @@ func main() {
 		return
 	}
 
-	b := pogoicons.New(client, pokeClient, cfg, version, goVersion, assets, assetCfg)
+	b := pogoicons.New(client, pokeClient, cfg, version, goVersion, subAssets, assetCfg)
 	go b.Start()
 
 	slog.Info("Bot started")
