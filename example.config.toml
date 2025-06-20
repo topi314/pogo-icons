@@ -1,4 +1,5 @@
-pokeapi_url = "https://github.com/PokeAPI/api-data"
+repository = "https://github.com/PokeAPI/api-data"
+clone_path = "data"
 
 [bot]
 token = ""

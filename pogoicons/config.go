@@ -30,6 +30,7 @@ func LoadConfig(cfgPath string) (Config, error) {
 func defaultConfig() Config {
 	return Config{
 		Repository: "https://github.com/PokeAPI/api-data",
+		ClonePath:  "data",
 		Bot: BotConfig{
 			Token:        "",
 			GuildIDs:     nil,
@@ -46,6 +47,7 @@ func defaultConfig() Config {
 
 type Config struct {
 	Repository string    `toml:"repository"`
+	ClonePath  string    `toml:"clone_path"`
 	Bot        BotConfig `toml:"bot"`
 	Log        LogConfig `toml:"log"`
 }

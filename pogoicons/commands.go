@@ -1,9 +1,11 @@
 package pogoicons
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
@@ -73,6 +75,16 @@ func (b *Bot) commands() ([]discord.ApplicationCommandCreate, error) {
 				},
 				discord.ApplicationCommandOptionString{
 					Name:         "pokemon4",
+					Description:  "The Pokémon to include",
+					Autocomplete: true,
+				},
+				discord.ApplicationCommandOptionString{
+					Name:         "pokemon5",
+					Description:  "The Pokémon to include",
+					Autocomplete: true,
+				},
+				discord.ApplicationCommandOptionString{
+					Name:         "pokemon6",
 					Description:  "The Pokémon to include",
 					Autocomplete: true,
 				},
@@ -157,12 +169,21 @@ func (b *Bot) onGenerateIcon(data discord.SlashCommandInteractionData, e *handle
 	if pokemon, ok := data.OptString("pokemon4"); ok {
 		pokemonList = append(pokemonList, pokemon)
 	}
+	if pokemon, ok := data.OptString("pokemon5"); ok {
+		pokemonList = append(pokemonList, pokemon)
+	}
+	if pokemon, ok := data.OptString("pokemon6"); ok {
+		pokemonList = append(pokemonList, pokemon)
+	}
 	var cosmetics []string
 	if cosmetic, ok := data.OptString("cosmetic"); ok {
 		cosmetics = append(cosmetics, cosmetic)
 	}
 
-	icon, err := icongen.Generate(b.assets, b.iconCfg, b.getPokemonImage, event, pokemonList, cosmetics)
+	ctx, cancel := context.WithTimeout(e.Ctx, 30*time.Second)
+	defer cancel()
+
+	icon, err := icongen.Generate(ctx, b.assets, b.iconCfg, b.getPokemonImage, event, pokemonList, cosmetics)
 	if err != nil {
 		slog.ErrorContext(e.Ctx, "error generating icon", slog.Any("err", err))
 		_, err = e.UpdateInteractionResponse(discord.MessageUpdate{
@@ -172,7 +193,7 @@ func (b *Bot) onGenerateIcon(data discord.SlashCommandInteractionData, e *handle
 	}
 
 	_, err = e.UpdateInteractionResponse(discord.MessageUpdate{
-		Content: json.Ptr(fmt.Sprintf("Generated icon for `%s` with `%s`", event, strings.Join(pokemonList, ","))),
+		Content: json.Ptr(fmt.Sprintf("Generated icon for `%s` with `%s`", event, strings.Join(pokemonList, ", "))),
 		Files: []*discord.File{
 			discord.NewFile(fmt.Sprintf("%s_%s.png", strings.ReplaceAll(strings.ToLower(event), " ", "_"), strings.Join(pokemonList, "_")), "", icon),
 		},

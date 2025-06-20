@@ -2,6 +2,7 @@ package icongen
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"image"
 	_ "image/jpeg"
@@ -14,7 +15,7 @@ import (
 	"golang.org/x/image/draw"
 )
 
-func Generate(assets fs.FS, cfg Config, pokemonImage func(p string) (io.ReadCloser, error), event string, pokemon []string, cosmetics []string) (io.Reader, error) {
+func Generate(ctx context.Context, assets fs.FS, cfg Config, pokemonImage func(ctx context.Context, p string) (io.ReadCloser, error), event string, pokemon []string, cosmetics []string) (io.Reader, error) {
 	var eventCfg EventConfig
 	for _, e := range cfg.Events {
 		if e.Name == event {
@@ -49,7 +50,7 @@ func Generate(assets fs.FS, cfg Config, pokemonImage func(p string) (io.ReadClos
 	if len(pokemon) > 0 {
 		pLayers := cfg.PokemonLayers[len(pokemon)-1].Layers
 		for i, p := range pokemon {
-			img, err := pokemonImage(p)
+			img, err := pokemonImage(ctx, p)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get pokemon image: %w", err)
 			}
@@ -153,7 +154,7 @@ func applyOverlay(baseImg *image.RGBA, img image.Image, layer imageLayer) error 
 	case PositionBottomRight:
 		offsetX = baseBounds.Dx()
 		offsetY = baseBounds.Dy() - bounds.Dy()
-	case PositionCenter:
+	case PositionCenter, PositionEmpty:
 		offsetX = (baseBounds.Dx() - bounds.Dx()) / 2
 		offsetY = (baseBounds.Dy() - bounds.Dy()) / 2
 	case PositionLeft:

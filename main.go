@@ -25,8 +25,8 @@ var (
 	//go:embed assets
 	assets embed.FS
 
-	//go:embed assets/config.toml
-	assetConfig []byte
+	//go:embed assets/generate.toml
+	generateConfig []byte
 )
 
 func main() {
@@ -58,7 +58,7 @@ func main() {
 	}
 
 	var assetCfg icongen.Config
-	if err = toml.Unmarshal(assetConfig, &assetCfg); err != nil {
+	if err = toml.Unmarshal(generateConfig, &assetCfg); err != nil {
 		slog.Error("Error while unmarshalling events", slog.Any("err", err))
 		return
 	}
@@ -69,7 +69,7 @@ func main() {
 		return
 	}
 
-	pokeClient, err := pokeapi.NewGit(cfg.Repository)
+	pokeClient, err := pokeapi.NewGit(cfg.Repository, cfg.ClonePath)
 	if err != nil {
 		slog.Error("Error while creating pokeapi client", slog.Any("err", err))
 		return

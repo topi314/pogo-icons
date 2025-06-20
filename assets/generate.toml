@@ -1,0 +1,110 @@
+[[events]]
+name = "Spotlight Hour"
+layers = [
+    { id = "background", image = "backgrounds/spotlight_hour.png" }
+]
+
+[[events]]
+name = "Community Day"
+layers = [
+    { id = "background", image = "backgrounds/generic_day.png" },
+    { id = "cosmetic", image = "icons/cday_banner.png", scale_y = 0.3, offset_y = 1 }
+]
+
+[[events]]
+name = "Community Day Classic"
+layers = [
+    { id = "background", image = "backgrounds/generic_day.png" },
+    { id = "cosmetic", image = "icons/cday_classic_banner.png", scale_y = 0.3, offset_y = 1 }
+]
+
+[[events]]
+name = "Raid Event"
+layers = [
+    { id = "background", image = "backgrounds/generic_day.png" },
+    { id = "background", image = "icons/raid.png" }
+]
+
+[[events]]
+name = "Mega Raid Event"
+layers = [
+    { id = "background", image = "backgrounds/generic_day.png" },
+    { id = "background", image = "icons/mega_raid.png" }
+]
+
+[[events]]
+name = "Shadow Raid Event"
+layers = [
+    { id = "background", image = "backgrounds/generic_day.png" },
+    { id = "background", image = "icons/shadow_raid.png" }
+]
+
+[[events]]
+name = "Dyna Battle Event"
+layers = [
+    { id = "background", image = "backgrounds/generic_day.png" },
+    { id = "background", image = "icons/dyna_battle.png" }
+]
+
+[[cosmetics]]
+name = "CA Badge - Top Left"
+layers = [
+    { id = "cosmetic", image = "icons/ca_star.png", position = "top-left", scale_y = 0.2, offset_x = 2.5 }
+]
+
+[[cosmetics]]
+name = "CA Badge - Top Right"
+layers = [
+    { id = "cosmetic", image = "icons/ca_star.png", position = "top-right", scale_y = 0.2, offset_x = -2.5 }
+]
+
+[[cosmetics]]
+name = "Shiny"
+layers = [
+    { id = "cosmetic", image = "icons/shiny.png", position = "top-left", scale_y = 0.2, offset_x = 2.5 }
+]
+
+[[pokemon_layers]]
+layers = [
+    { position = "center" }
+]
+
+[[pokemon_layers]]
+layers = [
+    { scale_y = 0.6, offset_x = -0.4 },
+    { scale_y = 0.6, offset_x = 0.4 }
+]
+
+[[pokemon_layers]]
+layers = [
+    { scale_y = 0.6, offset_y = -0.4 },
+    { scale_y = 0.6, offset_x = 0.4, offset_y = 0.4 },
+    { scale_y = 0.6, offset_x = -0.4, offset_y = 0.4 }
+]
+
+[[pokemon_layers]]
+layers = [
+    { scale_y = 0.6, offset_x = -0.4, offset_y = -0.4 },
+    { scale_y = 0.6, offset_x = 0.4, offset_y = -0.4 },
+    { scale_y = 0.6, offset_x = 0.4, offset_y = 0.4 },
+    { scale_y = 0.6, offset_x = -0.4, offset_y = 0.4 }
+]
+
+[[pokemon_layers]]
+layers = [
+    { scale_y = 0.6, offset_x = -0.4, offset_y = -0.4 },
+    { scale_y = 0.6, offset_x = -0.4, offset_y = 0.4 },
+    { scale_y = 0.6, offset_x = 0.4, offset_y = -0.4 },
+    { scale_y = 0.6, offset_x = 0.4, offset_y = 0.4 },
+    { scale_y = 0.6 }
+]
+
+[[pokemon_layers]]
+layers = [
+    { scale_y = 0.6, offset_x = -0.4, offset_y = -0.3 },
+    { scale_y = 0.6, offset_x = -0.4, offset_y = 0.3 },
+    { scale_y = 0.6, offset_x = 0.4, offset_y = -0.3 },
+    { scale_y = 0.6, offset_x = 0.4, offset_y = 0.3 },
+    { scale_y = 0.6, offset_x = 0, offset_y = -0.6 },
+    { scale_y = 0.6, offset_x = 0, offset_y = 0.6 }
+]

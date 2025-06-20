@@ -19,7 +19,7 @@ import (
 func main() {
 	pokemon := flag.String("pokemon", "", "A list of Pokemon names or IDs (comma separated)")
 	event := flag.String("event", "", "Event name")
-	cosmetics := flag.String("cosmetics", "", "A list od cosmetics names (comma separated)")
+	cosmetics := flag.String("cosmetics", "", "A list of cosmetics names (comma separated)")
 	endpoint := flag.String("endpoint", "https://pokeapi.co/api/v2", "PokeAPI endpoint URL (default: https://pokeapi.co/api/v2)")
 	assets := flag.String("assets", "assets", "Assets directory (default: assets)")
 	output := flag.String("output", "output.png", "Output file name (default: output.png)")
@@ -41,18 +41,18 @@ func main() {
 	pokeClient := pokeapi.NewAPI(*endpoint)
 	assetsDir := os.DirFS(*assets)
 
-	assetConfig, err := fs.ReadFile(assetsDir, "config.toml")
+	generateConfig, err := fs.ReadFile(assetsDir, "generate.toml")
 	if err != nil {
 		slog.ErrorContext(ctx, "Error while reading asset config", slog.Any("err", err))
 		return
 	}
 	var cfg icongen.Config
-	if err = toml.Unmarshal(assetConfig, &cfg); err != nil {
+	if err = toml.Unmarshal(generateConfig, &cfg); err != nil {
 		slog.ErrorContext(ctx, "Error while unmarshalling events", slog.Any("err", err))
 		return
 	}
 
-	var getPokemonImage = func(p string) (io.ReadCloser, error) {
+	var getPokemonImage = func(ctx context.Context, p string) (io.ReadCloser, error) {
 		pf, err := pokeClient.GetPokemonForm(ctx, p)
 		if err != nil {
 			return nil, err
@@ -69,7 +69,7 @@ func main() {
 	pokemonList := strings.Split(*pokemon, ",")
 	cosmeticList := strings.Split(*cosmetics, ",")
 
-	r, err := icongen.Generate(assetsDir, cfg, getPokemonImage, *event, pokemonList, cosmeticList)
+	r, err := icongen.Generate(ctx, assetsDir, cfg, getPokemonImage, *event, pokemonList, cosmeticList)
 	if err != nil {
 		slog.ErrorContext(ctx, "Error while generating image", slog.Any("err", err))
 		return

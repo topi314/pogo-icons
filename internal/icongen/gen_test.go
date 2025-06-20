@@ -101,12 +101,12 @@ func TestGenerate(t *testing.T) {
 		},
 	}
 
-	var getPokemonImage = func(p string) (io.ReadCloser, error) {
-		pf, err := client.GetPokemonForm(context.Background(), p)
+	var getPokemonImage = func(ctx context.Context, p string) (io.ReadCloser, error) {
+		pf, err := client.GetPokemonForm(ctx, p)
 		if err != nil {
 			return nil, err
 		}
-		sprite, err := client.GetSprite(context.Background(), pf.Sprite)
+		sprite, err := client.GetSprite(ctx, pf.Sprite)
 		if err != nil {
 			return nil, err
 		}
@@ -115,7 +115,7 @@ func TestGenerate(t *testing.T) {
 
 	assets := os.DirFS("../../assets")
 
-	img, err := Generate(assets, cfg, getPokemonImage, event, pokemon, cosmetics)
+	img, err := Generate(t.Context(), assets, cfg, getPokemonImage, event, pokemon, cosmetics)
 	if err != nil {
 		t.Fatalf("failed to generate image: %v", err)
 	}

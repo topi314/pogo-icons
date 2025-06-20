@@ -48,6 +48,8 @@ func (l LayerID) Order() int {
 type Position string
 
 const (
+	PositionEmpty Position = ""
+
 	PositionTop      Position = "top"
 	PositionTopLeft  Position = "top-left"
 	PositionTopRight Position = "top-right"

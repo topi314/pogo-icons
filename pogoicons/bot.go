@@ -5,7 +5,6 @@ import (
 	"io"
 	"io/fs"
 	"log/slog"
-	"time"
 
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/handler"
@@ -61,10 +60,7 @@ func (b *Bot) Start() {
 	}
 }
 
-func (b *Bot) getPokemonImage(p string) (io.ReadCloser, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
+func (b *Bot) getPokemonImage(ctx context.Context, p string) (io.ReadCloser, error) {
 	pf, err := b.pokeClient.GetPokemonForm(ctx, p)
 	if err != nil {
 		return nil, err
