@@ -1,14 +1,11 @@
 package pogoicons
 
 import (
-	"errors"
+	"context"
 	"fmt"
-	"io"
 	"log/slog"
-	"os"
-	"path"
-	"slices"
 	"strings"
+	"time"
 
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
@@ -17,13 +14,12 @@ import (
 	"github.com/disgoorg/json"
 	"go.gopad.dev/fuzzysearch/fuzzy"
 
-	"github.com/topi314/pogo-icons/internal/pogoicon"
-	"github.com/topi314/pogo-icons/internal/pokeapi"
+	"github.com/topi314/pogo-icons/internal/icongen"
 )
 
 func (b *Bot) commands() ([]discord.ApplicationCommandCreate, error) {
 	var eventChoices []discord.ApplicationCommandOptionChoiceString
-	for _, event := range b.assetCfg.Events {
+	for _, event := range b.iconCfg.Events {
 		eventChoices = append(eventChoices, discord.ApplicationCommandOptionChoiceString{
 			Name:  event.Name,
 			Value: event.Name,
@@ -31,7 +27,7 @@ func (b *Bot) commands() ([]discord.ApplicationCommandCreate, error) {
 	}
 
 	var cosmeticChoices []discord.ApplicationCommandOptionChoiceString
-	for _, cosmetic := range b.assetCfg.Cosmetics {
+	for _, cosmetic := range b.iconCfg.Cosmetics {
 		cosmeticChoices = append(cosmeticChoices, discord.ApplicationCommandOptionChoiceString{
 			Name:  cosmetic.Name,
 			Value: cosmetic.Name,
@@ -53,23 +49,44 @@ func (b *Bot) commands() ([]discord.ApplicationCommandCreate, error) {
 		},
 		discord.SlashCommandCreate{
 			Name:        "generate",
-			Description: "Generate an icon for a Pokémon",
+			Description: "Generate a Pokémon GO event icon",
 			Options: []discord.ApplicationCommandOption{
-				discord.ApplicationCommandOptionString{
-					Name:         "pokemon",
-					Description:  "The Pokémon to generate an icon for",
-					Required:     true,
-					Autocomplete: true,
-				},
 				discord.ApplicationCommandOptionString{
 					Name:        "event",
 					Description: "The event this image is for",
 					Required:    true,
 					Choices:     eventChoices,
 				},
-				discord.ApplicationCommandOptionBool{
-					Name:        "shiny",
-					Description: "Whether to use the shiny variant of the Pokémon",
+				discord.ApplicationCommandOptionString{
+					Name:         "pokemon1",
+					Description:  "The Pokémon to include",
+					Required:     true,
+					Autocomplete: true,
+				},
+				discord.ApplicationCommandOptionString{
+					Name:         "pokemon2",
+					Description:  "The Pokémon to include",
+					Autocomplete: true,
+				},
+				discord.ApplicationCommandOptionString{
+					Name:         "pokemon3",
+					Description:  "The Pokémon to include",
+					Autocomplete: true,
+				},
+				discord.ApplicationCommandOptionString{
+					Name:         "pokemon4",
+					Description:  "The Pokémon to include",
+					Autocomplete: true,
+				},
+				discord.ApplicationCommandOptionString{
+					Name:         "pokemon5",
+					Description:  "The Pokémon to include",
+					Autocomplete: true,
+				},
+				discord.ApplicationCommandOptionString{
+					Name:         "pokemon6",
+					Description:  "The Pokémon to include",
+					Autocomplete: true,
 				},
 				discord.ApplicationCommandOptionString{
 					Name:        "cosmetic",
@@ -94,6 +111,7 @@ func (b *Bot) routes() bot.EventListener {
 	r.Use(middleware.Go)
 	r.SlashCommand("/info", b.onInfo)
 	r.Route("/generate", func(r handler.Router) {
+		r.Use(middleware.Defer(discord.InteractionTypeApplicationCommand, false, false))
 		r.Autocomplete("/", b.onGenerateIconAutocomplete)
 		r.SlashCommand("/", b.onGenerateIcon)
 	})
@@ -112,13 +130,15 @@ func (b *Bot) onInfo(_ discord.SlashCommandInteractionData, e *handler.CommandEv
 }
 
 func (b *Bot) onGenerateIconAutocomplete(e *handler.AutocompleteEvent) error {
-	value := e.Data.String("pokemon")
+	opt := e.Data.Focused()
+	value := e.Data.String(opt.Name)
 
 	pokemon, err := b.pokeClient.GetPokemon(e.Ctx)
 	if err != nil {
 		slog.ErrorContext(e.Ctx, "error getting pokemon", slog.Any("err", err))
 		return e.AutocompleteResult([]discord.AutocompleteChoice{})
 	}
+
 	ranks := fuzzy.RankFindNormalizedFold(value, pokemon)
 	if len(ranks) == 0 {
 		return e.AutocompleteResult([]discord.AutocompleteChoice{})
@@ -138,125 +158,44 @@ func (b *Bot) onGenerateIconAutocomplete(e *handler.AutocompleteEvent) error {
 }
 
 func (b *Bot) onGenerateIcon(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
-	pokemon := data.String("pokemon")
-	eventName := data.String("event")
-	shiny := data.Bool("shiny")
-	cosmeticName := data.String("cosmetic")
-
-	eventIndex := slices.IndexFunc(b.assetCfg.Events, func(e EventConfig) bool {
-		return e.Name == eventName
-	})
-	if eventIndex == -1 {
-		return e.CreateMessage(discord.MessageCreate{
-			Content: fmt.Sprintf("Event not found: `%s`", eventName),
-			Flags:   discord.MessageFlagEphemeral,
-		})
+	event := data.String("event")
+	pokemonList := []string{data.String("pokemon1")}
+	if pokemon, ok := data.OptString("pokemon2"); ok {
+		pokemonList = append(pokemonList, pokemon)
 	}
-	event := b.assetCfg.Events[eventIndex]
-
-	if err := e.DeferCreateMessage(false); err != nil {
-		return err
+	if pokemon, ok := data.OptString("pokemon3"); ok {
+		pokemonList = append(pokemonList, pokemon)
 	}
-
-	var cosmetic CosmeticConfig
-	if cosmeticIndex := slices.IndexFunc(b.assetCfg.Cosmetics, func(c CosmeticConfig) bool {
-		return c.Name == cosmeticName
-	}); cosmeticIndex > -1 {
-		cosmetic = b.assetCfg.Cosmetics[cosmeticIndex]
+	if pokemon, ok := data.OptString("pokemon4"); ok {
+		pokemonList = append(pokemonList, pokemon)
+	}
+	if pokemon, ok := data.OptString("pokemon5"); ok {
+		pokemonList = append(pokemonList, pokemon)
+	}
+	if pokemon, ok := data.OptString("pokemon6"); ok {
+		pokemonList = append(pokemonList, pokemon)
+	}
+	var cosmetics []string
+	if cosmetic, ok := data.OptString("cosmetic"); ok {
+		cosmetics = append(cosmetics, cosmetic)
 	}
 
-	p, err := b.pokeClient.GetPokemonForm(e.Ctx, pokemon)
-	if err != nil {
-		if errors.Is(err, pokeapi.ErrNotFound) {
-			_, err = e.UpdateInteractionResponse(discord.MessageUpdate{
-				Content: json.Ptr(fmt.Sprintf("Pokemon `%s` not found", pokemon)),
-			})
-			return err
-		}
-		slog.ErrorContext(e.Ctx, "error getting pokemon", slog.Any("err", err))
-		_, err = e.UpdateInteractionResponse(discord.MessageUpdate{
-			Content: json.Ptr(fmt.Sprintf("Error getting pokemon: %s", err)),
-		})
-		return err
-	}
+	ctx, cancel := context.WithTimeout(e.Ctx, 30*time.Second)
+	defer cancel()
 
-	sprite := p.Sprite
-	if shiny && p.ShinySprite != "" {
-		sprite = p.ShinySprite
-	}
-
-	pokemonSprite, err := b.pokeClient.GetSprite(e.Ctx, sprite)
-	if err != nil {
-		slog.ErrorContext(e.Ctx, "error getting pokemon sprite", slog.Any("err", err))
-		_, err = e.UpdateInteractionResponse(discord.MessageUpdate{
-			Content: json.Ptr(fmt.Sprintf("Error getting pokemon sprite: %s", err)),
-		})
-	}
-	defer pokemonSprite.Body.Close()
-
-	backgroundImage, err := b.assets.Open(path.Join("assets/backgrounds", event.Background))
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			_, err = e.UpdateInteractionResponse(discord.MessageUpdate{
-				Content: json.Ptr(fmt.Sprintf("Background asset not found: %s", err)),
-			})
-		}
-		slog.ErrorContext(e.Ctx, "error opening background asset", slog.Any("err", err))
-		_, err = e.UpdateInteractionResponse(discord.MessageUpdate{
-			Content: json.Ptr(fmt.Sprintf("Error opening background asset: %s", err)),
-		})
-	}
-	defer backgroundImage.Close()
-
-	var backgroundIconImage io.Reader
-	if event.BackgroundIcon != "" {
-		img, err := b.assets.Open(path.Join("assets/background_icons", event.BackgroundIcon))
-		if err != nil {
-			if errors.Is(err, os.ErrNotExist) {
-				_, err = e.UpdateInteractionResponse(discord.MessageUpdate{
-					Content: json.Ptr(fmt.Sprintf("Background icon asset not found: %s", err)),
-				})
-			}
-			slog.ErrorContext(e.Ctx, "error opening background icon asset", slog.Any("err", err))
-			_, err = e.UpdateInteractionResponse(discord.MessageUpdate{
-				Content: json.Ptr(fmt.Sprintf("Error opening background icon asset: %s", err)),
-			})
-		}
-		defer img.Close()
-		backgroundIconImage = img
-	}
-
-	var cosmeticImage io.Reader
-	if cosmeticName != "" {
-		img, err := b.assets.Open(path.Join("assets/cosmetics", cosmetic.Image))
-		if err != nil {
-			if errors.Is(err, os.ErrNotExist) {
-				_, err = e.UpdateInteractionResponse(discord.MessageUpdate{
-					Content: json.Ptr(fmt.Sprintf("Cosmetic asset not found: %s", err)),
-				})
-				return err
-			}
-			slog.ErrorContext(e.Ctx, "error opening cosmetic asset", slog.Any("err", err))
-			_, err = e.UpdateInteractionResponse(discord.MessageUpdate{
-				Content: json.Ptr(fmt.Sprintf("Error opening cosmetic asset: %s", err)),
-			})
-		}
-		defer img.Close()
-		cosmeticImage = img
-	}
-
-	icon, err := pogoicon.Generate(backgroundImage, backgroundIconImage, event.BackgroundIconScale, pokemonSprite.Body, event.PokemonScale, cosmeticImage, cosmetic.Scale)
+	icon, err := icongen.Generate(ctx, b.assets, b.iconCfg, b.getPokemonImage, event, pokemonList, cosmetics)
 	if err != nil {
 		slog.ErrorContext(e.Ctx, "error generating icon", slog.Any("err", err))
 		_, err = e.UpdateInteractionResponse(discord.MessageUpdate{
 			Content: json.Ptr(fmt.Sprintf("Error generating icon: %s", err)),
 		})
+		return err
 	}
 
 	_, err = e.UpdateInteractionResponse(discord.MessageUpdate{
-		Content: json.Ptr(fmt.Sprintf("Generated icon for `%s` with background `%s`", p.Name, eventName)),
+		Content: json.Ptr(fmt.Sprintf("Generated icon for `%s` with `%s`", event, strings.Join(pokemonList, ", "))),
 		Files: []*discord.File{
-			discord.NewFile(fmt.Sprintf("%s_%s.png", p.Name, strings.ReplaceAll(strings.ToLower(eventName), " ", "_")), "", icon),
+			discord.NewFile(fmt.Sprintf("%s_%s.png", strings.ReplaceAll(strings.ToLower(event), " ", "_"), strings.Join(pokemonList, "_")), "", icon),
 		},
 	})
 

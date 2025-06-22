@@ -3,6 +3,7 @@ package main
 import (
 	"embed"
 	"flag"
+	"io/fs"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -15,6 +16,7 @@ import (
 	"github.com/disgoorg/disgo/bot"
 	"github.com/muesli/termenv"
 
+	"github.com/topi314/pogo-icons/internal/icongen"
 	"github.com/topi314/pogo-icons/internal/pokeapi"
 	"github.com/topi314/pogo-icons/pogoicons"
 )
@@ -23,8 +25,8 @@ var (
 	//go:embed assets
 	assets embed.FS
 
-	//go:embed assets/config.toml
-	assetConfig []byte
+	//go:embed assets/generate.toml
+	generateConfig []byte
 )
 
 func main() {
@@ -55,19 +57,25 @@ func main() {
 		return
 	}
 
-	var assetCfg pogoicons.AssetConfig
-	if err = toml.Unmarshal(assetConfig, &assetCfg); err != nil {
+	var assetCfg icongen.Config
+	if err = toml.Unmarshal(generateConfig, &assetCfg); err != nil {
 		slog.Error("Error while unmarshalling events", slog.Any("err", err))
 		return
 	}
 
-	pokeClient, err := pokeapi.NewGit(cfg.Repository)
+	subAssets, err := fs.Sub(assets, "assets")
+	if err != nil {
+		slog.Error("Error while creating assets sub fs", slog.Any("err", err))
+		return
+	}
+
+	pokeClient, err := pokeapi.NewGit(cfg.Repository, cfg.ClonePath)
 	if err != nil {
 		slog.Error("Error while creating pokeapi client", slog.Any("err", err))
 		return
 	}
 
-	b := pogoicons.New(client, pokeClient, cfg, version, goVersion, assets, assetCfg)
+	b := pogoicons.New(client, pokeClient, cfg, version, goVersion, subAssets, assetCfg)
 	go b.Start()
 
 	slog.Info("Bot started")

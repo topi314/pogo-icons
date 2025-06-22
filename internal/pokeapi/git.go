@@ -3,6 +3,7 @@ package pokeapi
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -12,37 +13,47 @@ import (
 	"time"
 
 	"github.com/go-git/go-billy/v5"
-	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/storage/memory"
 )
 
-func NewGit(repository string) (Client, error) {
-	slog.Info("Creating new git client")
-	fs := memfs.New()
-	r, err := git.Clone(memory.NewStorage(), fs, &git.CloneOptions{
-		URL:   repository,
-		Auth:  nil,
-		Depth: 1,
+func NewGit(repository string, clonePath string) (Client, error) {
+	slog.Info("Cloning repository", slog.String("repository", repository), slog.String("clonePath", clonePath))
+	r, err := git.PlainClone(clonePath, false, &git.CloneOptions{
+		URL:          repository,
+		Auth:         nil,
+		Depth:        1,
+		SingleBranch: true,
 	})
-	if err != nil {
+	if errors.Is(err, git.ErrRepositoryAlreadyExists) {
+		r, err = git.PlainOpen(clonePath)
+		if err != nil {
+			return nil, fmt.Errorf("error opening existing repository: %w", err)
+		}
+		slog.Info("Opened existing repository")
+	} else if err != nil {
 		return nil, fmt.Errorf("error cloning repository: %w", err)
+	} else {
+		slog.Info("Cloned repository")
 	}
-	slog.Info("Cloned repository")
+
+	worktree, err := r.Worktree()
+	if err != nil {
+		return nil, fmt.Errorf("error getting worktree: %w", err)
+	}
 
 	c := &clientGit{
 		client: &http.Client{
 			Timeout: 10 * time.Second,
 		},
-		fs:   fs,
+		fs:   worktree.Filesystem,
 		repo: r,
 	}
 
-	slog.Info("Loading data")
+	slog.Info("Loading pokemon data")
 	if err = c.load(); err != nil {
 		return nil, fmt.Errorf("error loading data: %w", err)
 	}
-	slog.Info("Data loaded")
+	slog.Info("Pokemon data loaded", slog.Int("count", len(c.pokemon)))
 
 	return c, nil
 }

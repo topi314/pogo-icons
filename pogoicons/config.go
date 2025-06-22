@@ -30,6 +30,7 @@ func LoadConfig(cfgPath string) (Config, error) {
 func defaultConfig() Config {
 	return Config{
 		Repository: "https://github.com/PokeAPI/api-data",
+		ClonePath:  "data",
 		Bot: BotConfig{
 			Token:        "",
 			GuildIDs:     nil,
@@ -46,6 +47,7 @@ func defaultConfig() Config {
 
 type Config struct {
 	Repository string    `toml:"repository"`
+	ClonePath  string    `toml:"clone_path"`
 	Bot        BotConfig `toml:"bot"`
 	Log        LogConfig `toml:"log"`
 }
@@ -94,23 +96,4 @@ func (c BotConfig) String() string {
 		c.GuildIDs,
 		c.SyncCommands,
 	)
-}
-
-type AssetConfig struct {
-	Events    []EventConfig    `toml:"events"`
-	Cosmetics []CosmeticConfig `toml:"cosmetics"`
-}
-
-type EventConfig struct {
-	Name                string  `toml:"name"`
-	Background          string  `toml:"background"`
-	BackgroundIcon      string  `toml:"background_icon"`
-	BackgroundIconScale float64 `toml:"background_icon_scale"`
-	PokemonScale        float64 `toml:"pokemon_scale"`
-}
-
-type CosmeticConfig struct {
-	Name  string  `toml:"name"`
-	Image string  `toml:"image"`
-	Scale float64 `toml:"scale"`
 }
