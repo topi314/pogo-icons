@@ -1,4 +1,10 @@
 [[events]]
+name = "Generic"
+layers = [
+    { id = "background", image = "backgrounds/generic_day.png" }
+]
+
+[[events]]
 name = "Spotlight Hour"
 layers = [
     { id = "background", image = "backgrounds/spotlight_hour.png" }
