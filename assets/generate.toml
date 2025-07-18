@@ -55,13 +55,13 @@ layers = [
 [[cosmetics]]
 name = "CA Badge - Top Left"
 layers = [
-    { id = "cosmetic", image = "icons/ca_star.png", position = "top-left", scale_y = 0.2, offset_x = 2.5 }
+    { id = "cosmetic", image = "icons/ca_star.png", position = "top-left", scale_y = 0.3, offset_x = 1.7 }
 ]
 
 [[cosmetics]]
 name = "CA Badge - Top Right"
 layers = [
-    { id = "cosmetic", image = "icons/ca_star.png", position = "top-right", scale_y = 0.2, offset_x = -2.5 }
+    { id = "cosmetic", image = "icons/ca_star.png", position = "top-right", scale_y = 0.3, offset_x = -1.7 }
 ]
 
 [[cosmetics]]
