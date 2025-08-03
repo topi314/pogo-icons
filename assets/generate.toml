@@ -52,6 +52,21 @@ layers = [
     { id = "background", image = "icons/dyna_battle.png" }
 ]
 
+[[events]]
+name = "Hatch Day Event"
+layers = [
+    { id = "background", image = "backgrounds/generic_day.png" },
+    { id = "background", image = "icons/2km_egg.png", scale_y = 0.95 }
+]
+
+[[events]]
+name = "Research Day Event"
+layers = [
+    { id = "background", image = "backgrounds/generic_day.png" },
+    { id = "background", image = "icons/professor_willow.png", scale_y = 0.95, offset_x = 0.7 }
+]
+
+
 [[cosmetics]]
 name = "CA Badge - Top Left"
 layers = [
