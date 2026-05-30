@@ -76,8 +76,11 @@ func main() {
 	outputFile, err := os.OpenFile("output.png", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666)
 	if err != nil {
 		slog.ErrorContext(ctx, "error opening output file", slog.String("err", err.Error()))
+		return
 	}
-	defer outputFile.Close()
+	defer func() {
+		_ = outputFile.Close()
+	}()
 
 	if _, err = io.Copy(outputFile, r); err != nil {
 		slog.ErrorContext(ctx, "error copying to output file", slog.Any("err", err))
