@@ -53,21 +53,21 @@ layers = [
 ]
 
 [[events]]
-name = "Hatch Day Event"
+name = "Hatch Day"
 layers = [
     { id = "background", image = "backgrounds/generic_day.png" },
     { id = "background", image = "icons/2km_egg.png", scale_y = 0.95 }
 ]
 
 [[events]]
-name = "Research Day Event"
+name = "Research Day"
 layers = [
     { id = "background", image = "backgrounds/generic_day.png" },
     { id = "background", image = "icons/professor_willow.png", scale_y = 0.95, offset_x = 0.7 }
 ]
 
 [[events]]
-name = "Friendship Friday Event"
+name = "Friendship Friday"
 layers = [
     { id = "background", image = "backgrounds/friendship_friday.png" }
 ]
