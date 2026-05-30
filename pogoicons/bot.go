@@ -13,7 +13,7 @@ import (
 	"github.com/topi314/pogo-icons/internal/pokeapi"
 )
 
-func New(client bot.Client, pokeClient pokeapi.Client, cfg Config, version string, goVersion string, assets fs.FS, iconCfg icongen.Config) *Bot {
+func New(client *bot.Client, pokeClient pokeapi.Client, cfg Config, version string, goVersion string, assets fs.FS, iconCfg icongen.Config) *Bot {
 	s := &Bot{
 		cfg:        cfg,
 		version:    version,
@@ -35,7 +35,7 @@ type Bot struct {
 	goVersion  string
 	assets     fs.FS
 	iconCfg    icongen.Config
-	client     bot.Client
+	client     *bot.Client
 	pokeClient pokeapi.Client
 }
 
@@ -45,17 +45,17 @@ func (b *Bot) Start() {
 			slog.Info("Syncing commands")
 			commands, err := b.commands()
 			if err != nil {
-				b.client.Logger().Error("failed to sync commands", err)
+				b.client.Logger.Error("failed to sync commands", err)
 				return
 			}
 			if err = handler.SyncCommands(b.client, commands, b.cfg.Bot.GuildIDs); err != nil {
-				b.client.Logger().Error("failed to sync commands", err)
+				b.client.Logger.Error("failed to sync commands", err)
 			}
 		}()
 	}
 
 	if err := b.client.OpenGateway(context.Background()); err != nil {
-		b.client.Logger().Error("failed to open gateway", err)
+		b.client.Logger.Error("failed to open gateway", err)
 		return
 	}
 }
