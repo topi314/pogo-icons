@@ -28,11 +28,6 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
 	defer cancel()
 
-	if *pokemon == "" {
-		slog.ErrorContext(ctx, "Pokemon name or ID is required")
-		return
-	}
-
 	if *event == "" {
 		slog.ErrorContext(ctx, "Event name is required")
 		return
@@ -66,7 +61,10 @@ func main() {
 		return pokemonImage.Body, nil
 	}
 
-	pokemonList := strings.Split(*pokemon, ",")
+	var pokemonList []string
+	if *pokemon != "" {
+		pokemonList = strings.Split(*pokemon, ",")
+	}
 	cosmeticList := strings.Split(*cosmetics, ",")
 
 	r, err := icongen.Generate(ctx, assetsDir, cfg, getPokemonImage, *event, pokemonList, cosmeticList)

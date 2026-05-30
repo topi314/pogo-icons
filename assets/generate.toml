@@ -66,6 +66,11 @@ layers = [
     { id = "background", image = "icons/professor_willow.png", scale_y = 0.95, offset_x = 0.7 }
 ]
 
+[[events]]
+name = "Friendship Friday Event"
+layers = [
+    { id = "background", image = "backgrounds/friendship_friday.png" }
+]
 
 [[cosmetics]]
 name = "CA Badge - Top Left"

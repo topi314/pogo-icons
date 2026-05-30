@@ -60,7 +60,6 @@ func (b *Bot) commands() ([]discord.ApplicationCommandCreate, error) {
 				discord.ApplicationCommandOptionString{
 					Name:         "pokemon1",
 					Description:  "The Pokémon to include",
-					Required:     true,
 					Autocomplete: true,
 				},
 				discord.ApplicationCommandOptionString{
