@@ -158,7 +158,10 @@ func (b *Bot) onGenerateIconAutocomplete(e *handler.AutocompleteEvent) error {
 
 func (b *Bot) onGenerateIcon(data discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
 	event := data.String("event")
-	pokemonList := []string{data.String("pokemon1")}
+	var pokemonList []string
+	if pokemon, ok := data.OptString("pokemon1"); ok {
+		pokemonList = append(pokemonList, pokemon)
+	}
 	if pokemon, ok := data.OptString("pokemon2"); ok {
 		pokemonList = append(pokemonList, pokemon)
 	}
