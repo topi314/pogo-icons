@@ -39,6 +39,13 @@ layers = [
 ]
 
 [[events]]
+name = "Super Mega Raid Event"
+layers = [
+    { id = "background", image = "backgrounds/generic_day.png" },
+    { id = "background", image = "icons/super_mega_raid.png" }
+]
+
+[[events]]
 name = "Shadow Raid Event"
 layers = [
     { id = "background", image = "backgrounds/generic_day.png" },
